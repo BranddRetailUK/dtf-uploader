@@ -79,6 +79,8 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 - `CLOUDINARY_API_SECRET`
 - Admin bootstrap values for the seed flow:
   `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME`, `ADMIN_COMPANY_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+- Railway deploy behavior:
+  `npm start` runs `prisma migrate deploy` before `next start`, so production boots against an up-to-date schema.
 
 ## Conventions
 

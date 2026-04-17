@@ -32,6 +32,12 @@ Railway-ready Next.js app for customer PDF uploads, Cloudinary storage, PostgreS
 - `npm run db:deploy`
 - `npm run db:seed`
 
+## Railway Deploys
+
+- `npm start` now runs `prisma migrate deploy` before `next start`.
+- Railway must have a valid `DATABASE_URL` attached to the service.
+- If a deploy was already built before this change, redeploy after pushing so the migration step runs on boot.
+
 ## Project Contracts
 
 - `AGENTS.md` is the operational source of truth for structure, flows, and conventions.
