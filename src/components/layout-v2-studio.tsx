@@ -18,10 +18,9 @@ import { formatFileSize } from "@/lib/format";
 import {
   arrangeLayoutItems,
   clampLayoutItemToCanvas,
-  duplicateLayoutItemGrid,
   getDefaultLayoutItemSize,
   findNextOpenLayoutPosition,
-  LAYOUT_ITEM_GAP_MM,
+  duplicateLayoutItemGrid,
   MIN_LAYOUT_ITEM_SIZE_MM,
 } from "@/lib/layout-editor";
 import {
@@ -135,6 +134,60 @@ function sortArtworksByPosition(left: CanvasArtwork, right: CanvasArtwork) {
   }
 
   return left.zIndex - right.zIndex;
+}
+
+function buildArtworkGroupCopies(input: {
+  currentArtworks: CanvasArtwork[];
+  parentArtwork: CanvasArtwork;
+  targetCopyCount: number;
+}) {
+  const safeTargetCopyCount = Math.max(0, Math.floor(input.targetCopyCount));
+  const groupId = input.parentArtwork.groupId;
+  const currentChildren = input.currentArtworks
+    .filter(
+      (artwork) => artwork.groupId === groupId && artwork.id !== input.parentArtwork.id,
+    )
+    .slice()
+    .sort(sortArtworksByPosition);
+  const otherArtworks = input.currentArtworks.filter(
+    (artwork) => artwork.groupId !== groupId,
+  );
+  const availableCopySlots = duplicateLayoutItemGrid(
+    toCanvasRect(input.parentArtwork),
+    otherArtworks.map(toCanvasRect),
+  );
+  const removedIds = new Set<string>();
+  let nextZIndex =
+    input.currentArtworks.reduce(
+      (max, artwork) => Math.max(max, artwork.zIndex),
+      -1,
+    ) + 1;
+
+  const nextChildren = availableCopySlots
+    .slice(0, safeTargetCopyCount)
+    .map((slot, index) => {
+      const existingChild = currentChildren[index];
+
+      return {
+        ...(existingChild ?? input.parentArtwork),
+        id: existingChild?.id ?? crypto.randomUUID(),
+        groupId,
+        xMm: slot.xMm,
+        yMm: slot.yMm,
+        widthMm: input.parentArtwork.widthMm,
+        heightMm: input.parentArtwork.heightMm,
+        zIndex: existingChild?.zIndex ?? nextZIndex++,
+      };
+    });
+
+  currentChildren.slice(nextChildren.length).forEach((artwork) => {
+    removedIds.add(artwork.id);
+  });
+
+  return {
+    nextArtworks: [...otherArtworks, input.parentArtwork, ...nextChildren],
+    removedIds,
+  };
 }
 
 export function LayoutV2Studio({
@@ -578,34 +631,43 @@ export function LayoutV2Studio({
       return;
     }
 
-    setArtworks((current) => {
-      const currentSelected =
-        current.find((artwork) => artwork.id === selectedArtwork.id) ?? selectedArtwork;
-      const duplicates = duplicateLayoutItemGrid(
-        toCanvasRect(currentSelected),
-        current
-          .filter((artwork) => artwork.id !== currentSelected.id)
-          .map(toCanvasRect),
-      );
+    const parentArtwork =
+      artworks.find((artwork) => artwork.id === selectedArtwork.groupId) ??
+      selectedArtwork;
+    const currentCopyCount = artworks.filter(
+      (artwork) =>
+        artwork.groupId === parentArtwork.groupId && artwork.id !== parentArtwork.id,
+    ).length;
 
-      if (duplicates.length === 0) {
+    setArtworkCopyCount(parentArtwork.groupId, currentCopyCount + 1);
+  }
+
+  function setArtworkCopyCount(groupId: string, rawValue: string | number) {
+    const parsedValue =
+      typeof rawValue === "number" ? rawValue : Number.parseInt(rawValue, 10);
+
+    if (!Number.isFinite(parsedValue)) {
+      return;
+    }
+
+    setArtworks((current) => {
+      const parentArtwork = current.find((artwork) => artwork.id === groupId);
+
+      if (!parentArtwork) {
         return current;
       }
 
-      let nextZIndex =
-        current.reduce((max, artwork) => Math.max(max, artwork.zIndex), -1) + 1;
+      const { nextArtworks, removedIds } = buildArtworkGroupCopies({
+        currentArtworks: current,
+        parentArtwork,
+        targetCopyCount: parsedValue,
+      });
 
-      return [
-        ...current,
-        ...duplicates.map((duplicate) => ({
-          ...currentSelected,
-          id: crypto.randomUUID(),
-          groupId: currentSelected.groupId,
-          xMm: duplicate.xMm,
-          yMm: duplicate.yMm,
-          zIndex: nextZIndex++,
-        })),
-      ];
+      if (selectedArtworkId && removedIds.has(selectedArtworkId)) {
+        setSelectedArtworkId(parentArtwork.id);
+      }
+
+      return nextArtworks;
     });
   }
 
@@ -638,48 +700,16 @@ export function LayoutV2Studio({
         widthMm: requestedWidthMm,
         heightMm: requestedHeightMm,
       });
-      const childArtworks = current
-        .filter(
-          (artwork) =>
-            artwork.groupId === groupId && artwork.id !== nextParentArtwork.id,
-        )
-        .slice()
-        .sort(sortArtworksByPosition);
-      const nextArtworksById = new Map<string, CanvasArtwork>([
-        [nextParentArtwork.id, nextParentArtwork],
-      ]);
-      const columnsPerRow = Math.max(
-        1,
-        Math.floor(
-          (LAYOUT_CANVAS_WIDTH_MM - nextParentArtwork.xMm + LAYOUT_ITEM_GAP_MM) /
-            (nextParentArtwork.widthMm + LAYOUT_ITEM_GAP_MM),
-        ),
-      );
+      const currentCopyCount = current.filter(
+        (artwork) =>
+          artwork.groupId === groupId && artwork.id !== nextParentArtwork.id,
+      ).length;
 
-      childArtworks.forEach((artwork, index) => {
-        const slotIndex = index + 1;
-        const column = slotIndex % columnsPerRow;
-        const row = Math.floor(slotIndex / columnsPerRow);
-
-        nextArtworksById.set(
-          artwork.id,
-          clampLayoutItemToCanvas({
-            ...artwork,
-            widthMm: nextParentArtwork.widthMm,
-            heightMm: nextParentArtwork.heightMm,
-            xMm:
-              nextParentArtwork.xMm +
-              column * (nextParentArtwork.widthMm + LAYOUT_ITEM_GAP_MM),
-            yMm:
-              nextParentArtwork.yMm +
-              row * (nextParentArtwork.heightMm + LAYOUT_ITEM_GAP_MM),
-          }),
-        );
-      });
-
-      return current.map(
-        (artwork) => nextArtworksById.get(artwork.id) ?? artwork,
-      );
+      return buildArtworkGroupCopies({
+        currentArtworks: current,
+        parentArtwork: nextParentArtwork,
+        targetCopyCount: currentCopyCount,
+      }).nextArtworks;
     });
   }
 
@@ -698,6 +728,21 @@ export function LayoutV2Studio({
       dimension === "width" ? parentArtwork.widthMm : parentArtwork.heightMm;
 
     updateArtworkDimension(groupId, dimension, String(Math.round(currentValue + delta)));
+  }
+
+  function nudgeArtworkCopyCount(groupId: string, delta: number) {
+    const parentArtwork = artworks.find((artwork) => artwork.id === groupId);
+
+    if (!parentArtwork) {
+      return;
+    }
+
+    const currentCopyCount = artworks.filter(
+      (artwork) =>
+        artwork.groupId === groupId && artwork.id !== parentArtwork.id,
+    ).length;
+
+    setArtworkCopyCount(groupId, currentCopyCount + delta);
   }
 
   return (
@@ -910,6 +955,41 @@ export function LayoutV2Studio({
                         </label>
                       );
                     })}
+
+                    <label className="inline-flex items-center rounded-full border border-[#7e00ff]/16 bg-white shadow-[0_10px_24px_rgba(126,0,255,0.07)]">
+                      <span className="pl-3 pr-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#666666]">
+                        Copies
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => nudgeArtworkCopyCount(group.groupId, -1)}
+                        disabled={group.children.length <= 0}
+                        className="inline-flex size-9 items-center justify-center text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff] disabled:cursor-not-allowed disabled:opacity-35"
+                        aria-label={`Decrease copies for ${group.parent.name}`}
+                      >
+                        <FiChevronLeft className="size-4" />
+                      </button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step={1}
+                        value={group.children.length}
+                        onChange={(event) =>
+                          setArtworkCopyCount(group.groupId, event.target.value)
+                        }
+                        className="w-[4.8rem] border-none bg-transparent text-center text-sm font-semibold tracking-normal text-[#1c1c1c] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        aria-label={`Set copies for ${group.parent.name}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => nudgeArtworkCopyCount(group.groupId, 1)}
+                        className="inline-flex size-9 items-center justify-center text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff]"
+                        aria-label={`Increase copies for ${group.parent.name}`}
+                      >
+                        <FiChevronRight className="size-4" />
+                      </button>
+                    </label>
                   </div>
 
                   {group.children.length > 0 ? (
@@ -949,9 +1029,6 @@ export function LayoutV2Studio({
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-[#1c1c1c]">
                                   Duplicate {index + 1}
-                                </p>
-                                <p className="text-xs uppercase tracking-[0.14em] text-[#666666]">
-                                  Uses parent size
                                 </p>
                               </div>
                             </button>

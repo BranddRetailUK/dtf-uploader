@@ -31,6 +31,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The page auto-provisions a saved layout shell when needed, persists background-mode changes through authenticated APIs, and removes developer-facing placeholder copy.
   The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, arrange all pieces, and duplicate the selected piece into a bounded grid.
   Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable.
+  Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.
   Duplicates are grouped under their original artwork in the list, and parent size changes resize the whole duplicate group.
   New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, and duplicate spacing uses a `10mm` gap.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
@@ -58,7 +59,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
   Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit.
   The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
-  Piece sizing is adjusted from editable width/height steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
+  Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
   The preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:
@@ -69,7 +70,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 canvas:
-  `/layout` now provides the interactive template area, background toggle, direct artwork intake, duplicate grouping under parent artworks, and local arrange/duplicate controls with left-list width/height steppers.
+  `/layout` now provides the interactive template area, background toggle, direct artwork intake, duplicate grouping under parent artworks, and local arrange/duplicate controls with left-list width/height/copy steppers.
 
 ## Data Model Summary
 
@@ -134,7 +135,7 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 
 ## Known Placeholders
 
-- `/layout` now supports direct artwork intake plus local drag/arrange/duplicate interactions with parent-controlled size steppers, but V2 artwork asset uploads and persisted layout items are still pending.
+- `/layout` now supports direct artwork intake plus local drag/arrange/duplicate interactions with parent-controlled size and copy steppers, but V2 artwork asset uploads and persisted layout items are still pending.
 - No checkout/payment flow exists in V1.
 - Cloudinary uploads are direct-to-cloud; no local file persistence exists on the app server.
 
