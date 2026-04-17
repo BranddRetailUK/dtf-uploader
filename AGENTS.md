@@ -37,7 +37,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The client validates/selects PDFs, previews the selected file locally, and calculates price client-side using shared pricing constants.
   On upload, the app first creates an order plus `order_files` records in PostgreSQL.
   After the order exists, the UI starts the fixed 4-second optimistic modal and background-upload flow.
-  Each file gets a signed Cloudinary upload config from the server, uploads directly to Cloudinary under `DTF/{userId}/{orderId}`, then reports success/failure back to the app.
+  Each file gets a signed Cloudinary upload config from the server, uploads directly to Cloudinary under `DTF/{userId}/{orderId}`, and is constrained to PDF format at the Cloudinary API layer.
+  Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted; browser-supplied file URLs are never trusted.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
@@ -58,6 +59,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   `status`, `fileCount`, `subtotalPence`, `vatPence`, `totalPence`
 - `OrderFile`
   Original filename, mime type, size, Cloudinary identifiers/URL, upload status, optional error
+- `RateLimitBucket`
+  DB-backed fixed-window request throttle buckets for auth and upload mutations
 
 ## Routes And Guards
 
@@ -87,10 +90,13 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 - Prices are stored in pence, never floats.
 - VAT is fixed at 20%.
 - Only PDFs are accepted in V1 uploads.
+- Direct Cloudinary uploads are signed with `allowed_formats=pdf`, and non-verified or non-PDF assets are rejected during finalize.
 - The optimistic upload modal is intentionally decoupled from real upload completion.
 - The public home page has no header; the header appears only after authentication.
 - Shared business rules live in `src/lib/*`.
 - Route handlers return JSON and perform server-side validation with Zod.
+- Public auth/upload mutation routes are rate-limited in PostgreSQL-backed fixed windows.
+- Only trusted `https://res.cloudinary.com/<cloud_name>/raw/upload/...` URLs are exposed back to the UI.
 - Git hygiene:
   Commit `.env.example`.
   Never commit `.env`.

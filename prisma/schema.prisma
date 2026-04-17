@@ -88,3 +88,15 @@ model OrderFile {
   @@index([orderId])
   @@index([uploadStatus])
 }
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  bucketKey   String
+  windowStart DateTime
+  count       Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([bucketKey, windowStart])
+  @@index([updatedAt])
+}

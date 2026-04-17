@@ -44,6 +44,7 @@ type UploadSignResponse = {
   signature: string;
   folder: string;
   publicId: string;
+  allowedFormats: string;
   tags: string;
   resourceType: string;
   uploadUrl: string;
@@ -206,6 +207,8 @@ export function UploadStudio(props: {
     orderFileId: string,
     file: LocalPdf,
   ) {
+    let finalizeRequestSent = false;
+
     const signResponse = await fetch("/api/uploads/sign", {
       method: "POST",
       headers: {
@@ -232,6 +235,7 @@ export function UploadStudio(props: {
     formData.append("signature", signPayload.signature);
     formData.append("folder", signPayload.folder);
     formData.append("public_id", signPayload.publicId);
+    formData.append("allowed_formats", signPayload.allowedFormats);
     formData.append("tags", signPayload.tags);
 
     try {
@@ -268,27 +272,35 @@ export function UploadStudio(props: {
           orderFileId,
           success: true,
           cloudinaryPublicId: cloudinaryPayload.public_id,
-          cloudinaryUrl: cloudinaryPayload.secure_url,
-          bytes: cloudinaryPayload.bytes ?? file.size,
         }),
       });
+      finalizeRequestSent = true;
+
+      const finalizePayload = (await finalizeResponse.json().catch(() => null)) as
+        | { error?: string }
+        | null;
 
       if (!finalizeResponse.ok) {
-        throw new Error("Your upload finished, but the order couldn't be updated.");
+        throw new Error(
+          finalizePayload?.error ??
+            "Your upload finished, but the order couldn't be updated.",
+        );
       }
     } catch (error) {
-      await fetch("/api/uploads/finalize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderId,
-          orderFileId,
-          success: false,
-          errorMessage: getErrorMessage(error),
-        }),
-      });
+      if (!finalizeRequestSent) {
+        await fetch("/api/uploads/finalize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderId,
+            orderFileId,
+            success: false,
+            errorMessage: getErrorMessage(error),
+          }),
+        });
+      }
 
       throw error;
     }

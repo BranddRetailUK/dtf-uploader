@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createSignedUploadPayload } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import { RateLimitExceededError, enforceRateLimit } from "@/lib/rate-limit";
 import { uploadSignSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -19,6 +20,30 @@ export async function POST(request: Request) {
       { error: payload.error.issues[0]?.message ?? "Invalid signing payload." },
       { status: 400 },
     );
+  }
+
+  try {
+    await enforceRateLimit({
+      scope: "uploads:sign:user",
+      identifier: user.id,
+      limit: 240,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many upload attempts. Please wait and try again.",
+    });
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: error.message },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
+    throw error;
   }
 
   const orderFile = await prisma.orderFile.findFirst({

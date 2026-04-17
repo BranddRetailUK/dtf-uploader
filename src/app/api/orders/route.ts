@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { calculatePriceBreakdown } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { RateLimitExceededError, enforceRateLimit } from "@/lib/rate-limit";
 import { getOrdersForUser } from "@/lib/orders";
 import { createOrderSchema } from "@/lib/validators";
 
@@ -32,6 +33,30 @@ export async function POST(request: Request) {
       { error: payload.error.issues[0]?.message ?? "Invalid order payload." },
       { status: 400 },
     );
+  }
+
+  try {
+    await enforceRateLimit({
+      scope: "orders:create:user",
+      identifier: user.id,
+      limit: 20,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many upload orders created. Please wait and try again.",
+    });
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: error.message },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
+    throw error;
   }
 
   const pricing = calculatePriceBreakdown(payload.data.files.length);

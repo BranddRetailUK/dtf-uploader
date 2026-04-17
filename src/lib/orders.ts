@@ -1,6 +1,7 @@
 import { Prisma, type OrderStatus, type UploadStatus } from "@prisma/client";
 
 import { authUserSelect } from "@/lib/auth";
+import { isTrustedCloudinaryAssetUrl } from "@/lib/cloudinary";
 import type { OrderSummary } from "@/lib/domain";
 import { prisma } from "@/lib/prisma";
 
@@ -44,7 +45,9 @@ function serializeOrder(order: OrderWithRelations): OrderSummary {
       bytes: file.bytes,
       uploadStatus: file.uploadStatus,
       cloudinaryPublicId: file.cloudinaryPublicId,
-      cloudinaryUrl: file.cloudinaryUrl,
+      cloudinaryUrl: isTrustedCloudinaryAssetUrl(file.cloudinaryUrl)
+        ? file.cloudinaryUrl
+        : null,
       errorMessage: file.errorMessage,
       createdAt: file.createdAt.toISOString(),
       updatedAt: file.updatedAt.toISOString(),

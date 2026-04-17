@@ -23,6 +23,14 @@
 - Order VAT = `round(subtotal * 0.20)`.
 - Order total = `subtotal + vat`.
 - Only PDF files are accepted in V1 upload creation.
+- Direct Cloudinary uploads are signed with `allowed_formats=pdf`.
+- A successful upload is not accepted from browser metadata alone:
+  - the browser reports only the Cloudinary `public_id`
+  - the server verifies the asset exists in Cloudinary
+  - the server verifies the asset is a `raw` PDF
+  - the stored URL/bytes come from verified Cloudinary metadata, not the browser payload
+- Only trusted Cloudinary HTTPS raw-upload URLs are exposed back to profile/admin responses.
+- Public auth and upload mutation endpoints are rate-limited.
 - Upload UX is optimistic:
   - after order creation, the UI shows a fixed 4-second animation
   - the animation is not tied to the real Cloudinary upload duration
@@ -78,6 +86,15 @@
 - `cloudinaryPublicId: string | null`
 - `cloudinaryUrl: string | null`
 - `errorMessage: string | null`
+- `createdAt: datetime`
+- `updatedAt: datetime`
+
+### RateLimitBucket
+
+- `id: string`
+- `bucketKey: string`
+- `windowStart: datetime`
+- `count: integer`
 - `createdAt: datetime`
 - `updatedAt: datetime`
 
@@ -146,12 +163,14 @@
 - Logic:
   - validate payload
   - lowercase email
+  - apply fixed-window rate limits
   - reject duplicates
   - hash password
   - create `USER`
   - create session + cookie
 - Response:
   - `user`
+  - may return `429`
 
 ### `POST /api/auth/login`
 
@@ -163,10 +182,12 @@
   - validate payload
   - lookup user
   - verify password hash
+  - apply fixed-window rate limits
   - if `adminOnly`, require role `ADMIN`
   - create session + cookie
 - Response:
   - `user`
+  - may return `429`
 
 ### `POST /api/auth/logout`
 
@@ -184,6 +205,7 @@
   - `files: [{ clientId, name, size, type }]`
 - Logic:
   - validate PDF metadata
+  - apply fixed-window rate limits
   - calculate totals
   - create one `Order`
   - create one `OrderFile` per input file
@@ -191,6 +213,7 @@
   - `orderId`
   - `pricing`
   - `files: [{ id, clientId, originalName }]`
+  - may return `429`
 
 ### `GET /api/orders`
 
@@ -208,6 +231,7 @@
   - `orderFileId`
 - Logic:
   - confirm the order/file belongs to the user
+  - apply fixed-window rate limits
   - mark file `UPLOADING`
   - generate a signed Cloudinary upload payload
 - Response:
@@ -217,9 +241,11 @@
   - `signature`
   - `folder`
   - `publicId`
+  - `allowedFormats`
   - `tags`
   - `resourceType`
   - `uploadUrl`
+  - may return `429`
 
 ### `POST /api/uploads/finalize`
 
@@ -229,13 +255,18 @@
   - `orderId`
   - `orderFileId`
   - `success`
-  - success payload: `cloudinaryPublicId`, `cloudinaryUrl`, `bytes`
+  - success payload: `cloudinaryPublicId`
   - failure payload: `errorMessage`
 - Logic:
-  - update the file row
+  - apply fixed-window rate limits
+  - verify successful uploads against Cloudinary using the expected per-file public ID
+  - reject assets that are not verified raw PDFs
+  - update the file row from verified Cloudinary metadata
   - recalculate the parent order status from all file states
 - Response:
   - updated order summary
+  - may return `422` when asset verification fails
+  - may return `429`
 
 ### `GET /api/admin/orders`
 
@@ -278,5 +309,6 @@
 - Monetary values are integers in pence.
 - Users can only read their own orders.
 - Only admins can read/update all orders.
+- Stored Cloudinary links must be trusted `res.cloudinary.com/<cloud_name>/raw/upload` HTTPS URLs.
 - Public-facing UI uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` as the primary accent.
 - `contract.md` must be updated whenever APIs, business rules, or scope change.

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 import { getCurrentUser } from "@/lib/auth";
+import { verifyUploadedPdfAsset } from "@/lib/cloudinary";
 import { deriveOrderStatus, getSerializedOrderById } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
+import { RateLimitExceededError, enforceRateLimit } from "@/lib/rate-limit";
 import { uploadFinalizeSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -25,6 +28,30 @@ export async function POST(request: Request) {
     );
   }
 
+  try {
+    await enforceRateLimit({
+      scope: "uploads:finalize:user",
+      identifier: user.id,
+      limit: 240,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many upload callbacks. Please wait and try again.",
+    });
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: error.message },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
+    throw error;
+  }
+
   const existingFile = await prisma.orderFile.findFirst({
     where: {
       id: payload.data.orderFileId,
@@ -36,6 +63,7 @@ export async function POST(request: Request) {
     select: {
       id: true,
       orderId: true,
+      originalName: true,
     },
   });
 
@@ -43,23 +71,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Upload record not found." }, { status: 404 });
   }
 
+  const verifiedAsset =
+    payload.data.success && payload.data.cloudinaryPublicId
+      ? await verifyUploadedPdfAsset({
+          userId: user.id,
+          orderId: existingFile.orderId,
+          orderFileId: existingFile.id,
+          originalName: existingFile.originalName,
+          reportedPublicId: payload.data.cloudinaryPublicId,
+        })
+      : null;
+
+  const errorMessage =
+    payload.data.success && verifiedAsset && !verifiedAsset.ok
+      ? verifiedAsset.error
+      : payload.data.errorMessage;
+  let updateData: Prisma.OrderFileUpdateInput;
+
+  if (payload.data.success && verifiedAsset && verifiedAsset.ok) {
+    updateData = {
+      uploadStatus: "UPLOADED",
+      cloudinaryPublicId: verifiedAsset.cloudinaryPublicId,
+      cloudinaryUrl: verifiedAsset.cloudinaryUrl,
+      bytes: verifiedAsset.bytes,
+      mimeType: "application/pdf",
+      errorMessage: null,
+    };
+  } else {
+    updateData = {
+      uploadStatus: "FAILED",
+      errorMessage: errorMessage ?? "Upload verification failed.",
+    };
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.orderFile.update({
       where: {
         id: existingFile.id,
       },
-      data: payload.data.success
-        ? {
-            uploadStatus: "UPLOADED",
-            cloudinaryPublicId: payload.data.cloudinaryPublicId,
-            cloudinaryUrl: payload.data.cloudinaryUrl,
-            bytes: payload.data.bytes,
-            errorMessage: null,
-          }
-        : {
-            uploadStatus: "FAILED",
-            errorMessage: payload.data.errorMessage,
-          },
+      data: updateData,
     });
 
     const uploadStatuses = await tx.orderFile.findMany({
@@ -82,6 +132,13 @@ export async function POST(request: Request) {
   });
 
   const order = await getSerializedOrderById(existingFile.orderId);
+
+  if (payload.data.success && verifiedAsset && !verifiedAsset.ok) {
+    return NextResponse.json(
+      { error: verifiedAsset.error, order },
+      { status: 422 },
+    );
+  }
 
   return NextResponse.json({ order });
 }

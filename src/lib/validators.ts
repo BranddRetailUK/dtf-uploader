@@ -50,8 +50,6 @@ export const uploadFinalizeSchema = z
     orderFileId: z.string().trim().min(1),
     success: z.boolean(),
     cloudinaryPublicId: z.string().trim().min(1).optional(),
-    cloudinaryUrl: z.string().trim().url().optional(),
-    bytes: z.number().int().nonnegative().optional(),
     errorMessage: z.string().trim().min(1).max(320).optional(),
   })
   .superRefine((value, ctx) => {
@@ -61,14 +59,6 @@ export const uploadFinalizeSchema = z
           code: z.ZodIssueCode.custom,
           path: ["cloudinaryPublicId"],
           message: "cloudinaryPublicId is required on successful uploads.",
-        });
-      }
-
-      if (!value.cloudinaryUrl) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["cloudinaryUrl"],
-          message: "cloudinaryUrl is required on successful uploads.",
         });
       }
     } else if (!value.errorMessage) {
