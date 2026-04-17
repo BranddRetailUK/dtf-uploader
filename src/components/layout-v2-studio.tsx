@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  FiChevronLeft,
+  FiChevronRight,
   FiCopy,
   FiGrid,
   FiImage,
@@ -19,6 +21,7 @@ import {
   duplicateLayoutItemGrid,
   getDefaultLayoutItemSize,
   findNextOpenLayoutPosition,
+  LAYOUT_ITEM_GAP_MM,
   MIN_LAYOUT_ITEM_SIZE_MM,
 } from "@/lib/layout-editor";
 import {
@@ -28,6 +31,7 @@ import {
 
 type CanvasArtwork = {
   id: string;
+  groupId: string;
   name: string;
   bytes: number;
   previewUrl: string;
@@ -99,6 +103,40 @@ function toCanvasRect(item: CanvasArtwork) {
   };
 }
 
+function revokeUnusedPreviewUrls(
+  currentArtworks: CanvasArtwork[],
+  nextArtworks: CanvasArtwork[],
+) {
+  const retainedPreviewUrls = new Set(
+    nextArtworks.map((artwork) => artwork.previewUrl),
+  );
+  const revokedPreviewUrls = new Set<string>();
+
+  currentArtworks.forEach((artwork) => {
+    if (
+      retainedPreviewUrls.has(artwork.previewUrl) ||
+      revokedPreviewUrls.has(artwork.previewUrl)
+    ) {
+      return;
+    }
+
+    URL.revokeObjectURL(artwork.previewUrl);
+    revokedPreviewUrls.add(artwork.previewUrl);
+  });
+}
+
+function sortArtworksByPosition(left: CanvasArtwork, right: CanvasArtwork) {
+  if (left.yMm !== right.yMm) {
+    return left.yMm - right.yMm;
+  }
+
+  if (left.xMm !== right.xMm) {
+    return left.xMm - right.xMm;
+  }
+
+  return left.zIndex - right.zIndex;
+}
+
 export function LayoutV2Studio({
   initialLayout,
 }: {
@@ -131,9 +169,11 @@ export function LayoutV2Studio({
 
   useEffect(() => {
     return () => {
-      artworkRef.current.forEach((artwork) => {
-        URL.revokeObjectURL(artwork.previewUrl);
-      });
+      new Set(artworkRef.current.map((artwork) => artwork.previewUrl)).forEach(
+        (previewUrl) => {
+          URL.revokeObjectURL(previewUrl);
+        },
+      );
     };
   }, []);
 
@@ -256,6 +296,44 @@ export function LayoutV2Studio({
   const selectedArtwork =
     artworks.find((artwork) => artwork.id === selectedArtworkId) ?? null;
   const pieces = [...artworks].sort((left, right) => left.zIndex - right.zIndex);
+  const artworkGroups = Array.from(
+    artworks.reduce(
+      (groups, artwork) => {
+        const currentGroup = groups.get(artwork.groupId) ?? {
+          groupId: artwork.groupId,
+          parent: null as CanvasArtwork | null,
+          children: [] as CanvasArtwork[],
+          maxZIndex: -1,
+        };
+
+        if (artwork.id === artwork.groupId) {
+          currentGroup.parent = artwork;
+        } else {
+          currentGroup.children.push(artwork);
+        }
+
+        currentGroup.maxZIndex = Math.max(currentGroup.maxZIndex, artwork.zIndex);
+        groups.set(artwork.groupId, currentGroup);
+        return groups;
+      },
+      new Map<
+        string,
+        {
+          groupId: string;
+          parent: CanvasArtwork | null;
+          children: CanvasArtwork[];
+          maxZIndex: number;
+        }
+      >(),
+    ).values(),
+  )
+    .filter((group) => group.parent)
+    .map((group) => ({
+      ...group,
+      parent: group.parent!,
+      children: group.children.slice().sort(sortArtworksByPosition),
+    }))
+    .sort((left, right) => right.maxZIndex - left.maxZIndex);
 
   function openFilePicker() {
     fileInputRef.current?.click();
@@ -310,8 +388,10 @@ export function LayoutV2Studio({
             working.map(toCanvasRect),
             defaultSize,
           );
+          const artworkId = crypto.randomUUID();
           const nextArtwork: CanvasArtwork = {
-            id: crypto.randomUUID(),
+            id: artworkId,
+            groupId: artworkId,
             name: loadedFile.file.name,
             bytes: loadedFile.file.size,
             previewUrl: loadedFile.previewUrl,
@@ -358,15 +438,24 @@ export function LayoutV2Studio({
 
   function removeArtwork(artworkId: string) {
     setArtworks((current) => {
-      const artwork = current.find((entry) => entry.id === artworkId);
+      const artworkToRemove = current.find((entry) => entry.id === artworkId);
 
-      if (artwork) {
-        URL.revokeObjectURL(artwork.previewUrl);
+      if (!artworkToRemove) {
+        return current;
       }
 
-      const next = current.filter((entry) => entry.id !== artworkId);
+      const removedArtworkIds = new Set(
+        artworkToRemove.id === artworkToRemove.groupId
+          ? current
+              .filter((entry) => entry.groupId === artworkToRemove.groupId)
+              .map((entry) => entry.id)
+          : [artworkId],
+      );
+      const next = current.filter((entry) => !removedArtworkIds.has(entry.id));
 
-      if (selectedArtworkId === artworkId) {
+      revokeUnusedPreviewUrls(current, next);
+
+      if (selectedArtworkId && removedArtworkIds.has(selectedArtworkId)) {
         setSelectedArtworkId(next.at(-1)?.id ?? null);
       }
 
@@ -511,6 +600,7 @@ export function LayoutV2Studio({
         ...duplicates.map((duplicate) => ({
           ...currentSelected,
           id: crypto.randomUUID(),
+          groupId: currentSelected.groupId,
           xMm: duplicate.xMm,
           yMm: duplicate.yMm,
           zIndex: nextZIndex++,
@@ -520,7 +610,7 @@ export function LayoutV2Studio({
   }
 
   function updateArtworkDimension(
-    artworkId: string,
+    groupId: string,
     dimension: "width" | "height",
     rawValue: string,
   ) {
@@ -530,26 +620,84 @@ export function LayoutV2Studio({
       return;
     }
 
-    setArtworks((current) =>
-      current.map((artwork) => {
-        if (artwork.id !== artworkId) {
-          return artwork;
-        }
+    setArtworks((current) => {
+      const parentArtwork = current.find((artwork) => artwork.id === groupId);
 
-        const safeDimension = Math.max(MIN_LAYOUT_ITEM_SIZE_MM, parsedValue);
-        const aspectRatio = artwork.widthPx / artwork.heightPx;
-        const nextWidthMm =
-          dimension === "width" ? safeDimension : safeDimension * aspectRatio;
-        const nextHeightMm =
-          dimension === "height" ? safeDimension : safeDimension / aspectRatio;
+      if (!parentArtwork) {
+        return current;
+      }
 
-        return clampLayoutItemToCanvas({
-          ...artwork,
-          widthMm: nextWidthMm,
-          heightMm: nextHeightMm,
-        });
-      }),
-    );
+      const safeDimension = Math.max(MIN_LAYOUT_ITEM_SIZE_MM, parsedValue);
+      const aspectRatio = parentArtwork.widthPx / parentArtwork.heightPx;
+      const requestedWidthMm =
+        dimension === "width" ? safeDimension : safeDimension * aspectRatio;
+      const requestedHeightMm =
+        dimension === "height" ? safeDimension : safeDimension / aspectRatio;
+      const nextParentArtwork = clampLayoutItemToCanvas({
+        ...parentArtwork,
+        widthMm: requestedWidthMm,
+        heightMm: requestedHeightMm,
+      });
+      const childArtworks = current
+        .filter(
+          (artwork) =>
+            artwork.groupId === groupId && artwork.id !== nextParentArtwork.id,
+        )
+        .slice()
+        .sort(sortArtworksByPosition);
+      const nextArtworksById = new Map<string, CanvasArtwork>([
+        [nextParentArtwork.id, nextParentArtwork],
+      ]);
+      const columnsPerRow = Math.max(
+        1,
+        Math.floor(
+          (LAYOUT_CANVAS_WIDTH_MM - nextParentArtwork.xMm + LAYOUT_ITEM_GAP_MM) /
+            (nextParentArtwork.widthMm + LAYOUT_ITEM_GAP_MM),
+        ),
+      );
+
+      childArtworks.forEach((artwork, index) => {
+        const slotIndex = index + 1;
+        const column = slotIndex % columnsPerRow;
+        const row = Math.floor(slotIndex / columnsPerRow);
+
+        nextArtworksById.set(
+          artwork.id,
+          clampLayoutItemToCanvas({
+            ...artwork,
+            widthMm: nextParentArtwork.widthMm,
+            heightMm: nextParentArtwork.heightMm,
+            xMm:
+              nextParentArtwork.xMm +
+              column * (nextParentArtwork.widthMm + LAYOUT_ITEM_GAP_MM),
+            yMm:
+              nextParentArtwork.yMm +
+              row * (nextParentArtwork.heightMm + LAYOUT_ITEM_GAP_MM),
+          }),
+        );
+      });
+
+      return current.map(
+        (artwork) => nextArtworksById.get(artwork.id) ?? artwork,
+      );
+    });
+  }
+
+  function nudgeArtworkDimension(
+    groupId: string,
+    dimension: "width" | "height",
+    delta: number,
+  ) {
+    const parentArtwork = artworks.find((artwork) => artwork.id === groupId);
+
+    if (!parentArtwork) {
+      return;
+    }
+
+    const currentValue =
+      dimension === "width" ? parentArtwork.widthMm : parentArtwork.heightMm;
+
+    updateArtworkDimension(groupId, dimension, String(Math.round(currentValue + delta)));
   }
 
   return (
@@ -637,14 +785,16 @@ export function LayoutV2Studio({
               Add artwork to start the layout
             </button>
           ) : (
-            artworks
-              .slice()
-              .sort((left, right) => right.zIndex - left.zIndex)
-              .map((artwork) => (
+            artworkGroups.map((group) => {
+              const isGroupSelected =
+                selectedArtworkId === group.parent.id ||
+                group.children.some((artwork) => artwork.id === selectedArtworkId);
+
+              return (
                 <div
-                  key={artwork.id}
+                  key={group.groupId}
                   className={`rounded-[1.5rem] border px-4 py-3 transition ${
-                    selectedArtworkId === artwork.id
+                    isGroupSelected
                       ? "border-[#7e00ff]/35 bg-[#f7f1ff]"
                       : "border-[#1c1c1c]/8 bg-white"
                   }`}
@@ -652,78 +802,176 @@ export function LayoutV2Studio({
                   <div className="flex items-start justify-between gap-3">
                     <button
                       type="button"
-                      onClick={() => bringArtworkToFront(artwork.id)}
+                      onClick={() => bringArtworkToFront(group.parent.id)}
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
                       <div className="relative h-14 w-14 overflow-hidden rounded-[1rem] border border-[#1c1c1c]/8 bg-[#fafafa]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={artwork.previewUrl}
-                          alt={artwork.name}
+                          src={group.parent.previewUrl}
+                          alt={group.parent.name}
                           className="h-full w-full object-contain"
                         />
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#1c1c1c]">
-                          {artwork.name}
+                          {group.parent.name}
                         </p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#666666]">
-                          {formatFileSize(artwork.bytes)}
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className="text-xs uppercase tracking-[0.16em] text-[#666666]">
+                            {formatFileSize(group.parent.bytes)}
+                          </p>
+                          <span className="rounded-full border border-[#7e00ff]/14 bg-[#faf8ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7e00ff]">
+                            {group.children.length === 0
+                              ? "Original"
+                              : group.children.length === 1
+                                ? "1 copy"
+                                : `${group.children.length} copies`}
+                          </span>
+                        </div>
                       </div>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => removeArtwork(artwork.id)}
+                      onClick={() => removeArtwork(group.parent.id)}
                       className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                      aria-label={`Remove ${artwork.name}`}
+                      aria-label={
+                        group.children.length === 0
+                          ? `Remove ${group.parent.name}`
+                          : `Remove ${group.parent.name} and its duplicates`
+                      }
                     >
                       <FiTrash2 className="size-4" />
                     </button>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <label className="inline-flex items-center gap-2 rounded-full border border-[#1c1c1c]/8 bg-[#fafafa] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#666666]">
-                      W
-                      <input
-                        type="number"
-                        min={MIN_LAYOUT_ITEM_SIZE_MM}
-                        step={1}
-                        value={Math.round(artwork.widthMm)}
-                        onChange={(event) =>
-                          updateArtworkDimension(
-                            artwork.id,
-                            "width",
-                            event.target.value,
-                          )
-                        }
-                        className="w-[4.2rem] border-none bg-transparent text-right text-sm font-semibold tracking-normal text-[#1c1c1c] outline-none"
-                      />
-                      <span className="text-[11px] tracking-[0.12em]">mm</span>
-                    </label>
+                    {(["width", "height"] as const).map((dimension) => {
+                      const isWidth = dimension === "width";
+                      const currentValue = Math.round(
+                        isWidth ? group.parent.widthMm : group.parent.heightMm,
+                      );
 
-                    <label className="inline-flex items-center gap-2 rounded-full border border-[#1c1c1c]/8 bg-[#fafafa] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#666666]">
-                      H
-                      <input
-                        type="number"
-                        min={MIN_LAYOUT_ITEM_SIZE_MM}
-                        step={1}
-                        value={Math.round(artwork.heightMm)}
-                        onChange={(event) =>
-                          updateArtworkDimension(
-                            artwork.id,
-                            "height",
-                            event.target.value,
-                          )
-                        }
-                        className="w-[4.2rem] border-none bg-transparent text-right text-sm font-semibold tracking-normal text-[#1c1c1c] outline-none"
-                      />
-                      <span className="text-[11px] tracking-[0.12em]">mm</span>
-                    </label>
+                      return (
+                        <label
+                          key={dimension}
+                          className="inline-flex items-center rounded-full border border-[#7e00ff]/16 bg-white shadow-[0_10px_24px_rgba(126,0,255,0.07)]"
+                        >
+                          <span className="pl-3 pr-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#666666]">
+                            {isWidth ? "W" : "H"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              nudgeArtworkDimension(group.groupId, dimension, -1)
+                            }
+                            disabled={currentValue <= MIN_LAYOUT_ITEM_SIZE_MM}
+                            className="inline-flex size-9 items-center justify-center text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff] disabled:cursor-not-allowed disabled:opacity-35"
+                            aria-label={`Decrease ${
+                              isWidth ? "width" : "height"
+                            } for ${group.parent.name}`}
+                          >
+                            <FiChevronLeft className="size-4" />
+                          </button>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={MIN_LAYOUT_ITEM_SIZE_MM}
+                            step={1}
+                            value={currentValue}
+                            onChange={(event) =>
+                              updateArtworkDimension(
+                                group.groupId,
+                                dimension,
+                                event.target.value,
+                              )
+                            }
+                            className="w-[4.6rem] border-none bg-transparent text-center text-sm font-semibold tracking-normal text-[#1c1c1c] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            aria-label={`Set ${
+                              isWidth ? "width" : "height"
+                            } for ${group.parent.name}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              nudgeArtworkDimension(group.groupId, dimension, 1)
+                            }
+                            className="inline-flex size-9 items-center justify-center text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff]"
+                            aria-label={`Increase ${
+                              isWidth ? "width" : "height"
+                            } for ${group.parent.name}`}
+                          >
+                            <FiChevronRight className="size-4" />
+                          </button>
+                          <span className="pl-1 pr-3 text-[11px] uppercase tracking-[0.12em] text-[#666666]">
+                            mm
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
+
+                  {group.children.length > 0 ? (
+                    <div className="mt-4 border-t border-[#1c1c1c]/8 pt-3">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#666666]">
+                          Duplicates
+                        </p>
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[#666666]">
+                          {group.children.length}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        {group.children.map((artwork, index) => (
+                          <div
+                            key={artwork.id}
+                            className={`flex items-center justify-between gap-3 rounded-[1.2rem] border px-3 py-2 transition ${
+                              selectedArtworkId === artwork.id
+                                ? "border-[#7e00ff]/30 bg-white"
+                                : "border-[#1c1c1c]/8 bg-[#fafafa]"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => bringArtworkToFront(artwork.id)}
+                              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                            >
+                              <div className="relative h-10 w-10 overflow-hidden rounded-[0.9rem] border border-[#1c1c1c]/8 bg-white">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={artwork.previewUrl}
+                                  alt={`${group.parent.name} duplicate ${index + 1}`}
+                                  className="h-full w-full object-contain"
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[#1c1c1c]">
+                                  Duplicate {index + 1}
+                                </p>
+                                <p className="text-xs uppercase tracking-[0.14em] text-[#666666]">
+                                  Uses parent size
+                                </p>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => removeArtwork(artwork.id)}
+                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                              aria-label={`Remove duplicate ${index + 1} for ${group.parent.name}`}
+                            >
+                              <FiTrash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              ))
+              );
+            })
           )}
         </div>
 

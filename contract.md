@@ -44,7 +44,9 @@
   - layout background mode persists to PostgreSQL
   - artwork can be added directly onto the preview by drag/drop or file picker
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
-  - each artwork row in the left-hand list exposes `W` and `H` millimetre inputs that scale the artwork while the preview stays visually clean
+  - each parent artwork row in the left-hand list exposes `W` and `H` millimetre steppers with a directly editable number field between the arrows
+  - duplicate rows are grouped under their original artwork in the left-hand list
+  - parent size changes resize the entire duplicate group while keeping duplicate spacing at `10mm`
   - new artwork is placed top-left first, then across the row, then below when horizontal space runs out
   - duplicated artwork uses a `10mm` gap
   - the V2 artwork pieces are still local-only until layout asset uploads are implemented
@@ -214,11 +216,11 @@
 - Fixed `560mm x 1000mm` template preview area.
 - Light/dark background toggle persisted to the selected layout.
 - Direct artwork intake on the preview via drag/drop or file picker.
-- Selected artwork sizing is edited from `W` and `H` controls in the left-hand artwork list.
+- Parent artwork sizing is edited from `W` and `H` steppers in the left-hand artwork list, with direct number entry between the arrows.
 - The preview does not show file-title badges, resize handles, or bounding boxes on artwork.
 - `Arrange` repacks current artwork inside the printable bounds.
 - `Duplicate` repeats the selected artwork in a bounded grid with `10mm` spacing until the next copy would exceed the preview bounds.
-- Local artwork list mirrors the pieces currently loaded into the preview.
+- Local artwork list groups duplicates beneath their original artwork and only exposes size controls on the parent row.
 
 ## Endpoint Contract
 
