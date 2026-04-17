@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   FiChevronLeft,
@@ -13,6 +14,7 @@ import {
   FiUploadCloud,
 } from "react-icons/fi";
 
+import { ActionStatusModal } from "@/components/action-status-modal";
 import type { LayoutBackgroundMode, LayoutSummary } from "@/lib/domain";
 import { formatFileSize } from "@/lib/format";
 import {
@@ -23,10 +25,12 @@ import {
   duplicateLayoutItemGrid,
   MIN_LAYOUT_ITEM_SIZE_MM,
 } from "@/lib/layout-editor";
+import { createLayoutTemplatePdfFile } from "@/lib/layout-template-pdf";
 import {
   LAYOUT_CANVAS_HEIGHT_MM,
   LAYOUT_CANVAS_WIDTH_MM,
 } from "@/lib/layout-config";
+import { queuePendingLayoutUpload } from "@/lib/pending-layout-upload";
 
 type CanvasArtwork = {
   id: string;
@@ -46,6 +50,38 @@ type CanvasArtwork = {
 type LayoutMutationResponse = {
   layout?: LayoutSummary;
   error?: string;
+};
+
+const LAYOUT_BACKGROUND_UI: Record<
+  LayoutBackgroundMode,
+  {
+    outerClassName: string;
+    dragOuterClassName: string;
+    innerClassName: string;
+    emptyStateClassName: string;
+  }
+> = {
+  LIGHT: {
+    outerClassName: "border-[#1c1c1c]/10 bg-[#f7f7f7]",
+    dragOuterClassName: "border-[#7e00ff]/35 bg-[#f4ebff]",
+    innerClassName: "border-[#1c1c1c]/12 bg-white",
+    emptyStateClassName:
+      "border-[#1c1c1c]/10 bg-[#fafafa] text-[#666666] hover:border-[#7e00ff]/24 hover:text-[#1c1c1c]",
+  },
+  GREY: {
+    outerClassName: "border-[#1c1c1c]/10 bg-[#d6d6d6]",
+    dragOuterClassName: "border-[#7e00ff]/35 bg-[#dcd3eb]",
+    innerClassName: "border-[#1c1c1c]/12 bg-black/50",
+    emptyStateClassName:
+      "border-black/10 bg-white/55 text-[#3f3f3f] hover:border-[#7e00ff]/24 hover:text-[#1c1c1c]",
+  },
+  DARK: {
+    outerClassName: "border-[#1c1c1c]/10 bg-[#1c1c1c]",
+    dragOuterClassName: "border-[#7e00ff]/35 bg-[#2a2236]",
+    innerClassName: "border-white/18 bg-[#111111]",
+    emptyStateClassName:
+      "border-white/16 bg-white/3 text-white/72 hover:border-[#7e00ff]/28",
+  },
 };
 
 type CanvasInteraction =
@@ -195,6 +231,7 @@ export function LayoutV2Studio({
 }: {
   initialLayout: LayoutSummary | null;
 }) {
+  const router = useRouter();
   const [layout, setLayout] = useState<LayoutSummary | null>(initialLayout);
   const [backgroundMode, setBackgroundMode] = useState<LayoutBackgroundMode>(
     initialLayout?.backgroundMode ?? "LIGHT",
@@ -207,6 +244,10 @@ export function LayoutV2Studio({
   } | null>(null);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [isSavingBackground, setIsSavingBackground] = useState(false);
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+  const [templateModalPhase, setTemplateModalPhase] = useState<
+    "idle" | "uploading" | "success"
+  >("idle");
   const [canvasSizePx, setCanvasSizePx] = useState({ width: 0, height: 0 });
   const [interaction, setInteraction] = useState<CanvasInteraction | null>(null);
 
@@ -215,6 +256,7 @@ export function LayoutV2Studio({
   const artworkRef = useRef<CanvasArtwork[]>([]);
   const dragDepthRef = useRef(0);
   const autoCreateAttemptedRef = useRef(false);
+  const templateSuccessTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     artworkRef.current = artworks;
@@ -227,6 +269,10 @@ export function LayoutV2Studio({
           URL.revokeObjectURL(previewUrl);
         },
       );
+
+      if (templateSuccessTimerRef.current) {
+        window.clearTimeout(templateSuccessTimerRef.current);
+      }
     };
   }, []);
 
@@ -387,6 +433,41 @@ export function LayoutV2Studio({
       children: group.children.slice().sort(sortArtworksByPosition),
     }))
     .sort((left, right) => right.maxZIndex - left.maxZIndex);
+  const backgroundUi = LAYOUT_BACKGROUND_UI[backgroundMode];
+
+  function showTemplateUploadingModal() {
+    if (templateSuccessTimerRef.current) {
+      window.clearTimeout(templateSuccessTimerRef.current);
+      templateSuccessTimerRef.current = null;
+    }
+
+    setTemplateModalPhase("uploading");
+  }
+
+  function showTemplateSuccessModal() {
+    if (templateSuccessTimerRef.current) {
+      window.clearTimeout(templateSuccessTimerRef.current);
+    }
+
+    setTemplateModalPhase("success");
+
+    return new Promise<void>((resolve) => {
+      templateSuccessTimerRef.current = window.setTimeout(() => {
+        setTemplateModalPhase("idle");
+        templateSuccessTimerRef.current = null;
+        resolve();
+      }, 1800);
+    });
+  }
+
+  function hideTemplateModal() {
+    if (templateSuccessTimerRef.current) {
+      window.clearTimeout(templateSuccessTimerRef.current);
+      templateSuccessTimerRef.current = null;
+    }
+
+    setTemplateModalPhase("idle");
+  }
 
   function openFilePicker() {
     fileInputRef.current?.click();
@@ -604,6 +685,45 @@ export function LayoutV2Studio({
     setIsSavingBackground(false);
   }
 
+  async function handleAddToOrder() {
+    if (artworkRef.current.length === 0 || isAddingTemplate) {
+      return;
+    }
+
+    setIsAddingTemplate(true);
+    setFeedback(null);
+    showTemplateUploadingModal();
+
+    try {
+      const templateFile = await createLayoutTemplatePdfFile({
+        artworks: artworkRef.current.map((artwork) => ({
+          previewUrl: artwork.previewUrl,
+          xMm: artwork.xMm,
+          yMm: artwork.yMm,
+          widthMm: artwork.widthMm,
+          heightMm: artwork.heightMm,
+          zIndex: artwork.zIndex,
+        })),
+        backgroundMode,
+      });
+
+      queuePendingLayoutUpload(templateFile);
+      await showTemplateSuccessModal();
+      router.push("/");
+    } catch (error) {
+      hideTemplateModal();
+      setFeedback({
+        tone: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "We couldn't add the template to your order.",
+      });
+    } finally {
+      setIsAddingTemplate(false);
+    }
+  }
+
   function handleArrange() {
     if (artworks.length < 2) {
       return;
@@ -746,19 +866,20 @@ export function LayoutV2Studio({
   }
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFileInput}
-      />
+    <>
+      <section className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileInput}
+        />
 
-      <div className="surface-panel">
+        <div className="surface-panel">
         <p className="eyebrow">Layout</p>
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-5">
           <button
             type="button"
             onClick={openFilePicker}
@@ -767,6 +888,9 @@ export function LayoutV2Studio({
             <FiImage className="size-4" />
             Add artwork
           </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-3">
           <button
             type="button"
             onClick={handleArrange}
@@ -801,6 +925,17 @@ export function LayoutV2Studio({
           </button>
           <button
             type="button"
+            onClick={() => void handleBackgroundMode("GREY")}
+            disabled={isSavingBackground}
+            className={`secondary-button px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
+              backgroundMode === "GREY" ? "border-[#7e00ff]/35 bg-[#f4ebff]" : ""
+            }`}
+          >
+            <span className="size-3 rounded-full bg-black/50" />
+            Grey
+          </button>
+          <button
+            type="button"
             onClick={() => void handleBackgroundMode("DARK")}
             disabled={isSavingBackground}
             className={`secondary-button px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -812,11 +947,8 @@ export function LayoutV2Studio({
           </button>
         </div>
 
-        <div className="mt-8 flex items-center justify-between gap-4">
+        <div className="mt-8">
           <p className="eyebrow">Artwork</p>
-          <div className="rounded-full border border-[#7e00ff]/14 bg-[#faf8ff] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#7e00ff]">
-            {artworks.length} piece{artworks.length === 1 ? "" : "s"}
-          </div>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -1062,12 +1194,7 @@ export function LayoutV2Studio({
 
       <div className="surface-panel">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="eyebrow">Template preview</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
-              {layout?.name ?? "Layout"}
-            </h2>
-          </div>
+          <p className="eyebrow">Template preview</p>
           <div className="rounded-full border border-[#7e00ff]/14 bg-[#faf8ff] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#7e00ff]">
             560mm × 1000mm
           </div>
@@ -1079,37 +1206,21 @@ export function LayoutV2Studio({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`relative aspect-[56/100] w-full max-w-[32rem] rounded-[2rem] border p-4 shadow-[0_18px_50px_rgba(28,28,28,0.08)] transition ${
-              backgroundMode === "LIGHT"
-                ? "border-[#1c1c1c]/10 bg-[#f7f7f7]"
-                : "border-[#1c1c1c]/10 bg-[#1c1c1c]"
-            } ${
-              isDraggingFiles
-                ? backgroundMode === "LIGHT"
-                  ? "scale-[0.995] border-[#7e00ff]/35 bg-[#f4ebff]"
-                  : "scale-[0.995] border-[#7e00ff]/35 bg-[#2a2236]"
-                : ""
+            className={`relative aspect-[56/100] w-full max-w-[32rem] rounded-[2rem] border p-4 shadow-[0_18px_50px_rgba(28,28,28,0.08)] transition ${backgroundUi.outerClassName} ${
+              isDraggingFiles ? `scale-[0.995] ${backgroundUi.dragOuterClassName}` : ""
             }`}
           >
             <div
               ref={printableAreaRef}
               onPointerDown={() => setSelectedArtworkId(null)}
-              className={`relative h-full w-full overflow-hidden rounded-[1.5rem] border border-dashed ${
-                backgroundMode === "LIGHT"
-                  ? "border-[#1c1c1c]/12 bg-white"
-                  : "border-white/18 bg-[#111111]"
-              }`}
+              className={`relative h-full w-full overflow-hidden rounded-[1.5rem] border border-dashed ${backgroundUi.innerClassName}`}
             >
               {pieces.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
                   <button
                     type="button"
                     onClick={openFilePicker}
-                    className={`flex max-w-xs flex-col items-center gap-4 rounded-[1.8rem] border border-dashed px-8 py-10 transition ${
-                      backgroundMode === "LIGHT"
-                        ? "border-[#1c1c1c]/10 bg-[#fafafa] text-[#666666] hover:border-[#7e00ff]/24 hover:text-[#1c1c1c]"
-                        : "border-white/16 bg-white/3 text-white/72 hover:border-[#7e00ff]/28"
-                    }`}
+                    className={`flex max-w-xs flex-col items-center gap-4 rounded-[1.8rem] border border-dashed px-8 py-10 transition ${backgroundUi.emptyStateClassName}`}
                   >
                     <div className="flex size-15 items-center justify-center rounded-[1.2rem] bg-[#f4ebff] text-[#7e00ff]">
                       <FiUploadCloud className="size-6" />
@@ -1152,7 +1263,28 @@ export function LayoutV2Studio({
             </div>
           </div>
         </div>
-      </div>
-    </section>
+
+        <button
+          type="button"
+          onClick={() => void handleAddToOrder()}
+          disabled={artworks.length === 0 || isAddingTemplate}
+          className="primary-button mt-6 w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {isAddingTemplate ? "Preparing template..." : "Add to order"}
+          <FiUploadCloud className="size-4" />
+        </button>
+        </div>
+      </section>
+
+      {templateModalPhase !== "idle" ? (
+        <ActionStatusModal
+          phase={templateModalPhase}
+          loadingTitle="Adding template"
+          loadingMessage="Please wait while your template is added."
+          successTitle="Template added"
+          successMessage="Your layout template is now on the upload page."
+        />
+      ) : null}
+    </>
   );
 }

@@ -6,18 +6,18 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
-  FiCheck,
   FiFileText,
-  FiLoader,
   FiTrash2,
   FiUploadCloud,
 } from "react-icons/fi";
 
+import { ActionStatusModal } from "@/components/action-status-modal";
 import { formatCurrencyFromPence, formatFileSize } from "@/lib/format";
 import {
   DEFAULT_ORDER_FILE_QUANTITY,
   MAX_ORDER_FILE_QUANTITY,
 } from "@/lib/order-config";
+import { consumePendingLayoutUploads } from "@/lib/pending-layout-upload";
 import { calculatePriceBreakdown } from "@/lib/pricing";
 import { PdfPreview } from "@/components/pdf-preview";
 
@@ -76,18 +76,47 @@ function getTotalUploadCount(files: Pick<LocalUpload, "quantity">[]) {
   return files.reduce((sum, file) => sum + file.quantity, 0);
 }
 
+function mapFilesToLocalUploads(nextFiles: File[]) {
+  return nextFiles.map((file) => ({
+    clientId: crypto.randomUUID(),
+    file,
+    name: file.name,
+    type: file.type || "application/octet-stream",
+    size: file.size,
+    quantity: DEFAULT_ORDER_FILE_QUANTITY,
+    previewUrl: URL.createObjectURL(file),
+  }));
+}
+
 export function UploadStudio() {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [files, setFiles] = useState<LocalUpload[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [initialUploadState] = useState(() => {
+    const pendingFiles = mapFilesToLocalUploads(consumePendingLayoutUploads());
+
+    return {
+      files: pendingFiles,
+      selectedId: pendingFiles[0]?.clientId ?? null,
+      feedback:
+        pendingFiles.length > 0
+          ? {
+              tone: "success" as const,
+              message: "Your layout template has been added and is ready to send.",
+            }
+          : null,
+    };
+  });
+  const [files, setFiles] = useState<LocalUpload[]>(initialUploadState.files);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialUploadState.selectedId,
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [activeBackgroundUploads, setActiveBackgroundUploads] = useState(0);
   const [feedback, setFeedback] = useState<{
     tone: "neutral" | "success" | "warning" | "error";
     message: string;
-  } | null>(null);
+  } | null>(initialUploadState.feedback);
   const [modalPhase, setModalPhase] = useState<"idle" | "uploading" | "success">(
     "idle",
   );
@@ -188,15 +217,7 @@ export function UploadStudio() {
       return;
     }
 
-    const mapped = nextFiles.map((file) => ({
-      clientId: crypto.randomUUID(),
-      file,
-      name: file.name,
-      type: file.type || "application/octet-stream",
-      size: file.size,
-      quantity: DEFAULT_ORDER_FILE_QUANTITY,
-      previewUrl: URL.createObjectURL(file),
-    }));
+    const mapped = mapFilesToLocalUploads(nextFiles);
 
     setFiles((current) => [...current, ...mapped]);
     setSelectedId((current) => current ?? mapped[0]?.clientId ?? null);
@@ -807,25 +828,13 @@ export function UploadStudio() {
       </section>
  
       {modalPhase !== "idle" ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(28,28,28,0.16)] px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-[2rem] border border-[#7e00ff]/16 bg-white p-8 text-center shadow-[0_30px_90px_rgba(28,28,28,0.14)]">
-            <div className="mx-auto flex size-24 items-center justify-center rounded-full bg-[#f4ebff]">
-              {modalPhase === "uploading" ? (
-                <FiLoader className="size-10 animate-spin text-[#7e00ff]" />
-              ) : (
-                <FiCheck className="size-10 text-emerald-500" />
-              )}
-            </div>
-            <h2 className="mt-6 text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
-              {modalPhase === "uploading" ? "Uploading" : "Uploaded"}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-[#666666]">
-              {modalPhase === "uploading"
-                ? "Please wait while your files upload."
-                : "Your order has been sent. Any later issue will appear in your profile."}
-            </p>
-          </div>
-        </div>
+        <ActionStatusModal
+          phase={modalPhase}
+          loadingTitle="Uploading"
+          loadingMessage="Please wait while your files upload."
+          successTitle="Uploaded"
+          successMessage="Your order has been sent. Any later issue will appear in your profile."
+        />
       ) : null}
     </>
   );

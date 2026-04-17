@@ -33,6 +33,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable with no `40mm` floor.
   Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.
   Duplicates are grouped under their original artwork in the list, and parent size changes resize the whole duplicate group.
+  The background toggle now offers `Light`, `Grey`, and `Dark`, with light remaining the default and grey rendering the printable area as `50%` black.
+  The preview panel now includes an `Add to order` action that renders the current layout as a PDF template, shows the same spinner/tick modal pattern as upload, and routes to `/` with the generated template injected into the normal upload list.
   New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, and duplicate spacing uses a `10mm` gap.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
@@ -47,6 +49,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - Upload:
   The client selects artwork files, previews the selected file locally when possible, and calculates price client-side using shared pricing constants.
   Each selected artwork keeps a non-editable quantity that is adjusted with left/right arrow controls on the artwork card.
+  `/layout` can hand off a generated PDF template into this same local upload list, where it behaves like a normal user-added file.
   The preview panel renders PDFs without the browser PDF toolbar, renders images inline, falls back to a file placeholder for unsupported preview types, and acts as a drag/drop target when empty or populated.
   On upload, the app first creates an order plus `order_files` records in PostgreSQL.
   Each `order_files` row stores the original upload plus its billed quantity; `Order.fileCount` stores the summed quantity across the order.
@@ -57,21 +60,22 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout V2:
   Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
-  Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit.
+  Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit, with `LIGHT` as the default mode.
   The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
   Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
   Size fields now accept `0mm` while typing so values like `100mm` can be entered directly without snapping up to `40mm`.
+  `Add to order` renders the current layout to a one-page PDF, shows template-specific loading/success modal copy, and redirects to `/` where the template is inserted into the normal upload queue.
   The preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
   The signed-in header uses a separate logo asset from the public auth screen.
-  In the signed-in header, upload/layout/admin navigation sits directly to the right of the logo, and the profile link is a right-aligned icon button.
+  In the signed-in header, upload/create-layout/admin navigation sits directly to the right of the logo, and both the upload and profile actions use the accent-purple button treatment.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 canvas:
-  `/layout` now provides the interactive template area, background toggle, direct artwork intake, duplicate grouping under parent artworks, and local arrange/duplicate controls with left-list width/height/copy steppers.
+  `/layout` now provides the interactive template area, light/grey/dark background toggle, direct artwork intake, duplicate grouping under parent artworks, local arrange/duplicate controls with left-list width/height/copy steppers, and PDF handoff into the upload flow.
 
 ## Data Model Summary
 
@@ -136,7 +140,7 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 
 ## Known Placeholders
 
-- `/layout` now supports direct artwork intake plus local drag/arrange/duplicate interactions with parent-controlled size and copy steppers, but V2 artwork asset uploads and persisted layout items are still pending.
+- `/layout` now supports direct artwork intake plus local drag/arrange/duplicate interactions with parent-controlled size and copy steppers and client-side PDF handoff into the upload flow, but V2 artwork asset uploads and persisted layout items are still pending.
 - No checkout/payment flow exists in V1.
 - Cloudinary uploads are direct-to-cloud; no local file persistence exists on the app server.
 

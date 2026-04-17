@@ -20,7 +20,7 @@ export function SiteHeader({ user }: { user: AuthUser }) {
             <nav className="flex flex-wrap items-center gap-2 text-sm">
               <Link
                 href="/"
-                className="secondary-button px-3.5 py-2"
+                className="primary-button px-3.5 py-2"
               >
                 Upload
               </Link>
@@ -29,7 +29,7 @@ export function SiteHeader({ user }: { user: AuthUser }) {
                 className="secondary-button px-3.5 py-2"
               >
                 <FiLayers className="size-4" />
-                Layout v2
+                Create layout
               </Link>
               {user.role === "ADMIN" ? (
                 <Link
@@ -47,7 +47,7 @@ export function SiteHeader({ user }: { user: AuthUser }) {
             href="/profile"
             aria-label="Profile"
             title="Profile"
-            className="secondary-button inline-flex size-11 items-center justify-center self-start p-0 sm:self-auto"
+            className="primary-button inline-flex size-11 items-center justify-center self-start p-0 sm:self-auto"
           >
             <FiUser className="size-5" />
           </Link>

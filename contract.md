@@ -6,13 +6,13 @@
 - Store uploads in Cloudinary under a `DTF/` folder hierarchy.
 - Persist users, orders, files, and statuses in PostgreSQL.
 - Expose a simple admin inbox for received work.
-- Provide the first persisted V2 layout workspace on `/layout`, with saved layout shells and background mode.
+- Provide the first persisted V2 layout workspace on `/layout`, with saved layout shells, background mode, and template handoff into the upload flow.
 
 ## Scope
 
 - V1 includes auth, artwork uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
 - V1 does not include online payment.
-- V2 now includes an interactive layout canvas with persisted background mode.
+- V2 now includes an interactive layout canvas with persisted background mode and PDF handoff into the upload flow.
 - V2 does not yet include Cloudinary-backed layout asset uploads or persisted layout items across reloads.
 
 ## Business Rules
@@ -35,13 +35,15 @@
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
   - each artwork card has a quantity stepper with arrow buttons; manual number entry is not allowed
+  - a template generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
   - after order creation, the UI shows an upload modal while background uploads are running
   - the success state is shown only after the real upload completes
   - the success tick remains visible briefly before the order view refreshes
   - real upload failures are persisted and surfaced later in profile/admin
 - V2 layout UX:
   - authenticated users land directly in the layout canvas without a visible create-layout step
-  - layout background mode persists to PostgreSQL
+  - layout background mode persists to PostgreSQL, with `LIGHT` as the default mode
+  - the background toggle offers `LIGHT`, `GREY`, and `DARK`, where `GREY` renders the printable area as `50%` black
   - artwork can be added directly onto the preview by drag/drop or file picker
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
   - each parent artwork row in the left-hand list exposes `W` and `H` millimetre steppers with a directly editable number field between the arrows
@@ -50,6 +52,7 @@
   - duplicate rows are grouped under their original artwork in the left-hand list
   - parent size changes resize the entire duplicate group while keeping duplicate spacing at `10mm`
   - changing the copy count adds or removes child duplicates directly from the grouped list
+  - `Add to order` renders the current layout into a one-page PDF template, shows template-specific loading/success modal copy, and redirects to `/`
   - new artwork is placed top-left first, then across the row, then below when horizontal space runs out
   - duplicated artwork uses a `10mm` gap
   - the V2 artwork pieces are still local-only until layout asset uploads are implemented
@@ -113,7 +116,7 @@
 - `id: string`
 - `userId: string`
 - `name: string`
-- `backgroundMode: LIGHT | DARK`
+- `backgroundMode: LIGHT | GREY | DARK`
 - `canvasWidthMm: integer`
 - `canvasHeightMm: integer`
 - `createdAt: datetime`
@@ -176,6 +179,7 @@
   - the preview window accepts drag/drop file uploads
   - left/right preview arrows appear when multiple files are loaded
   - right-column multi-file artwork selection box
+  - a layout-generated PDF template can appear here as a standard upload file
   - each artwork card includes a quantity stepper with left/right arrows
   - price summary below the upload box
   - price summary reflects the summed billed quantity across all artwork cards
@@ -217,7 +221,7 @@
 
 - Authenticated V2 saved-layout workspace.
 - Fixed `560mm x 1000mm` template preview area.
-- Light/dark background toggle persisted to the selected layout.
+- Light/grey/dark background toggle persisted to the selected layout, with light as the default.
 - Direct artwork intake on the preview via drag/drop or file picker.
 - Parent artwork sizing is edited from `W` and `H` steppers in the left-hand artwork list, with direct number entry between the arrows.
 - Size inputs can be typed down to `0mm`, so entering values like `100mm` no longer snaps the artwork up to a `40mm` minimum mid-entry.
@@ -226,6 +230,7 @@
 - `Arrange` repacks current artwork inside the printable bounds.
 - `Duplicate` adds another bounded-grid copy for the selected artwork group, respecting the `10mm` gap and preview bounds.
 - Local artwork list groups duplicates beneath their original artwork and only exposes size/copy controls on the parent row.
+- `Add to order` creates a PDF template from the current canvas, shows template-specific loading/success modal text, and routes to `/` with that PDF added to the upload list.
 
 ## Endpoint Contract
 
@@ -390,7 +395,7 @@
   - logged-in user required
 - Request:
   - `name?: string`
-  - `backgroundMode?: LIGHT | DARK`
+  - `backgroundMode?: LIGHT | GREY | DARK`
 - Logic:
   - create a saved layout for the current user
   - default the canvas size to `560mm x 1000mm`
@@ -403,7 +408,7 @@
   - logged-in user required
 - Request:
   - `name?: string`
-  - `backgroundMode?: LIGHT | DARK`
+  - `backgroundMode?: LIGHT | GREY | DARK`
   - `items?: [{ artworkAssetId, xMm, yMm, widthMm, heightMm, rotationDeg, quantity, zIndex }]`
 - Logic:
   - ensure the layout belongs to the current user

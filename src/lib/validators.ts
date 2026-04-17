@@ -67,7 +67,7 @@ export const adminStatusSchema = z.object({
   status: z.enum(["RECEIVED", "IN_PRODUCTION", "COMPLETED", "FAILED"]),
 });
 
-export const layoutBackgroundModeSchema = z.enum(["LIGHT", "DARK"]);
+export const layoutBackgroundModeSchema = z.enum(["LIGHT", "GREY", "DARK"]);
 
 export const createLayoutSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),

@@ -56,7 +56,7 @@ test("createOrderSchema rejects invalid upload quantities", () => {
 test("createLayoutSchema accepts optional V2 layout fields", () => {
   const result = createLayoutSchema.safeParse({
     name: "Layout 1",
-    backgroundMode: "DARK",
+    backgroundMode: "GREY",
   });
 
   assert.equal(result.success, true);

@@ -8,7 +8,7 @@ export type OrderStatus =
   | "FAILED";
 
 export type UploadStatus = "PENDING" | "UPLOADING" | "UPLOADED" | "FAILED";
-export type LayoutBackgroundMode = "LIGHT" | "DARK";
+export type LayoutBackgroundMode = "LIGHT" | "GREY" | "DARK";
 
 export type PriceBreakdown = {
   fileCount: number;
@@ -113,6 +113,7 @@ export const FILE_STATUS_LABELS: Record<UploadStatus, string> = {
 
 export const LAYOUT_BACKGROUND_MODE_LABELS: Record<LayoutBackgroundMode, string> = {
   LIGHT: "Light",
+  GREY: "Grey",
   DARK: "Dark",
 };
 

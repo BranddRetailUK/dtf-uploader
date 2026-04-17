@@ -94,6 +94,7 @@ model OrderFile {
 
 enum LayoutBackgroundMode {
   LIGHT
+  GREY
   DARK
 }
 
