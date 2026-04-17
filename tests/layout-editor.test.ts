@@ -123,3 +123,31 @@ test("duplicateLayoutItemGrid fills copies within the preview bounds", () => {
     heightMm: 120,
   });
 });
+
+test("duplicateLayoutItemGrid restarts later rows from the left edge", () => {
+  const duplicates = duplicateLayoutItemGrid(
+    {
+      id: "item_1",
+      xMm: 180,
+      yMm: 320,
+      widthMm: 170,
+      heightMm: 150,
+    },
+    [],
+  );
+
+  assert.deepEqual(duplicates[0], {
+    id: "item_1-1",
+    xMm: 360,
+    yMm: 320,
+    widthMm: 170,
+    heightMm: 150,
+  });
+  assert.deepEqual(duplicates[1], {
+    id: "item_1-2",
+    xMm: 0,
+    yMm: 480,
+    widthMm: 170,
+    heightMm: 150,
+  });
+});

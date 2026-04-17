@@ -21,6 +21,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Customer auth screen with login selected by default.
 - `src/app/profile/page.tsx`
   Authenticated order history with per-order totals plus file-level status and quantity.
+  Layout-generated template rows show a small first-page thumbnail plus a clean date-based template title, and the page header now uses a generic order-history heading instead of the customer company name.
   The logout button lives on this page rather than in the shared header.
 - `src/app/admin/login/page.tsx`
   Admin-only login entrypoint.
@@ -35,7 +36,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Duplicates are grouped under their original artwork in the list, and parent size changes resize the whole duplicate group.
   The background toggle now offers `Light`, `Grey`, and `Dark`, with light remaining the default and grey rendering the printable area as `50%` black.
   The preview panel now includes an `Add to order` action that renders the current layout as a PDF template, shows the same spinner/tick modal pattern as upload, and routes to `/` with the generated template injected into the normal upload list.
-  New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, and duplicate spacing uses a `10mm` gap.
+  New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, duplicate spacing uses a `10mm` gap, and duplicate rows restart from the left canvas edge after the source row has filled to the right.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
   JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, admin status updates, and V2 layout create/list/update routes.
@@ -56,15 +57,16 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   After the order exists, the UI starts the upload modal and background-upload flow.
   Each file gets a signed Cloudinary upload config from the server and uploads directly to Cloudinary under `DTF/{userId}/{orderId}`.
   Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted by checking the expected Cloudinary public ID and trusted raw-upload URL; browser-supplied file URLs are never trusted.
-  Profile/admin file opening goes through an authenticated app route that redirects to a signed Cloudinary raw delivery URL, because the stored raw upload URLs are not relied on as customer-facing links.
+  Profile/admin file opening goes through an authenticated app route that fetches the verified Cloudinary raw asset server-side and streams it back inline, so the browser no longer lands on a failing Cloudinary delivery URL.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout V2:
   Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
   Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit, with `LIGHT` as the default mode.
   The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
   Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
+  Duplicate placement continues to the right on the source row, then restarts from the left edge on later rows so open space left of the parent can still be used lower in the canvas.
   Size fields now accept `0mm` while typing so values like `100mm` can be entered directly without snapping up to `40mm`.
-  `Add to order` renders the current layout to a one-page PDF, shows template-specific loading/success modal copy, and redirects to `/` where the template is inserted into the normal upload queue.
+  `Add to order` renders the current layout to a one-page PDF named with a clean date label, shows template-specific loading/success modal copy, and redirects to `/` where the template is inserted into the normal upload queue.
   The preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:
@@ -140,7 +142,7 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 
 ## Known Placeholders
 
-- `/layout` now supports direct artwork intake plus local drag/arrange/duplicate interactions with parent-controlled size and copy steppers and client-side PDF handoff into the upload flow, but V2 artwork asset uploads and persisted layout items are still pending.
+- `/layout` now supports direct artwork intake plus local drag/arrange/duplicate interactions with parent-controlled size and copy steppers, left-edge restart behavior for later duplicate rows, and client-side PDF handoff into the upload flow, but V2 artwork asset uploads and persisted layout items are still pending.
 - No checkout/payment flow exists in V1.
 - Cloudinary uploads are direct-to-cloud; no local file persistence exists on the app server.
 

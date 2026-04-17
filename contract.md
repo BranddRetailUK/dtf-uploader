@@ -31,11 +31,12 @@
   - the server verifies the asset is a trusted `raw` upload URL
   - the stored URL/bytes come from verified Cloudinary metadata, not the browser payload
 - Only trusted Cloudinary HTTPS raw-upload URLs are exposed back to profile/admin responses.
-- Customer/admin file opening is served through an authenticated app route that redirects to a signed Cloudinary raw delivery URL.
+- Customer/admin file opening is served through an authenticated app route that fetches the verified Cloudinary raw asset server-side and streams it back inline.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
   - each artwork card has a quantity stepper with arrow buttons; manual number entry is not allowed
   - a template generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
+  - layout-generated templates use a clean date-based filename instead of an ISO timestamp name
   - after order creation, the UI shows an upload modal while background uploads are running
   - the success state is shown only after the real upload completes
   - the success tick remains visible briefly before the order view refreshes
@@ -52,6 +53,7 @@
   - duplicate rows are grouped under their original artwork in the left-hand list
   - parent size changes resize the entire duplicate group while keeping duplicate spacing at `10mm`
   - changing the copy count adds or removes child duplicates directly from the grouped list
+  - duplicate placement continues to the right on the source row, then restarts from the left preview edge on later rows so unused left-side space can still be filled
   - `Add to order` renders the current layout into a one-page PDF template, shows template-specific loading/success modal copy, and redirects to `/`
   - new artwork is placed top-left first, then across the row, then below when horizontal space runs out
   - duplicated artwork uses a `10mm` gap
@@ -199,6 +201,8 @@
 - Show only the signed-in user’s orders.
 - Show all files within each order.
 - Show the quantity stored against each uploaded artwork.
+- Show a small first-page thumbnail beside layout-generated template files.
+- Show layout-generated template titles with a clean date label rather than the raw stored filename.
 - Show collated subtotal, VAT, and total per order.
 - Show file/order failure states if background upload later failed.
 
@@ -228,9 +232,9 @@
 - Parent artwork copy count is edited from a matching stepper with direct number entry.
 - The preview does not show file-title badges, resize handles, or bounding boxes on artwork.
 - `Arrange` repacks current artwork inside the printable bounds.
-- `Duplicate` adds another bounded-grid copy for the selected artwork group, respecting the `10mm` gap and preview bounds.
+- `Duplicate` adds another bounded-grid copy for the selected artwork group, respecting the `10mm` gap and preview bounds, continuing right on the source row and restarting from the left edge on later rows.
 - Local artwork list groups duplicates beneath their original artwork and only exposes size/copy controls on the parent row.
-- `Add to order` creates a PDF template from the current canvas, shows template-specific loading/success modal text, and routes to `/` with that PDF added to the upload list.
+- `Add to order` creates a PDF template from the current canvas, gives it a clean date-based filename, shows template-specific loading/success modal text, and routes to `/` with that PDF added to the upload list.
 
 ## Endpoint Contract
 

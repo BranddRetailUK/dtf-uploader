@@ -3,6 +3,7 @@ import {
   LAYOUT_CANVAS_HEIGHT_MM,
   LAYOUT_CANVAS_WIDTH_MM,
 } from "@/lib/layout-config";
+import { buildTemplateFilename } from "@/lib/template-files";
 
 const MM_TO_POINTS = 72 / 25.4;
 const TEMPLATE_RENDER_PX_PER_MM = 3;
@@ -149,10 +150,6 @@ async function createJpegBytesFromCanvas(canvas: HTMLCanvasElement) {
   return new Uint8Array(await blob.arrayBuffer());
 }
 
-function createTemplateFilename() {
-  return `lami-template-${new Date().toISOString().replace(/[:.]/g, "-")}.pdf`;
-}
-
 export async function createLayoutTemplatePdfFile(input: {
   artworks: LayoutTemplateArtwork[];
   backgroundMode: LayoutBackgroundMode;
@@ -203,7 +200,7 @@ export async function createLayoutTemplatePdfFile(input: {
     pageHeightPt: LAYOUT_CANVAS_HEIGHT_MM * MM_TO_POINTS,
   });
 
-  return new File([pdfBytes], createTemplateFilename(), {
+  return new File([pdfBytes], buildTemplateFilename(new Date()), {
     type: "application/pdf",
     lastModified: Date.now(),
   });

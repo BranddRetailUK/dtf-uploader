@@ -163,18 +163,14 @@ export function duplicateLayoutItemGrid<T extends LayoutCanvasItem>(
   }));
   const maxX = LAYOUT_CANVAS_WIDTH_MM - selectedItem.widthMm;
   const maxY = LAYOUT_CANVAS_HEIGHT_MM - selectedItem.heightMm;
+  const xStep = selectedItem.widthMm + gapMm;
+  const yStep = selectedItem.heightMm + gapMm;
 
-  for (
-    let yMm = selectedItem.yMm;
-    yMm <= maxY;
-    yMm += selectedItem.heightMm + gapMm
-  ) {
-    for (
-      let xMm = selectedItem.xMm;
-      xMm <= maxX;
-      xMm += selectedItem.widthMm + gapMm
-    ) {
-      if (xMm === selectedItem.xMm && yMm === selectedItem.yMm) {
+  for (let rowIndex = 0, yMm = selectedItem.yMm; yMm <= maxY; rowIndex += 1, yMm += yStep) {
+    const rowStartX = rowIndex === 0 ? selectedItem.xMm : 0;
+
+    for (let xMm = rowStartX; xMm <= maxX; xMm += xStep) {
+      if (rowIndex === 0 && xMm === selectedItem.xMm) {
         continue;
       }
 

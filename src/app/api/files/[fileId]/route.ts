@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import {
-  createSignedAssetDeliveryUrl,
-  getCloudinaryAssetVersion,
-  isTrustedCloudinaryAssetUrl,
-} from "@/lib/cloudinary";
+import { isTrustedCloudinaryAssetUrl } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import {
+  buildTemplateFilename,
+  isGeneratedTemplateFileName,
+} from "@/lib/template-files";
+
+function buildInlineContentDisposition(filename: string) {
+  const asciiFilename = filename.replace(/[^\x20-\x7E]+/g, "").replace(/["\\]/g, "");
+  const fallbackFilename = asciiFilename || "file";
+
+  return `inline; filename="${fallbackFilename}"; filename*=UTF-8''${encodeURIComponent(
+    filename,
+  )}`;
+}
 
 export async function GET(
   _request: Request,
@@ -27,8 +36,10 @@ export async function GET(
     select: {
       id: true,
       uploadStatus: true,
-      cloudinaryPublicId: true,
+      originalName: true,
+      mimeType: true,
       cloudinaryUrl: true,
+      createdAt: true,
       order: {
         select: {
           userId: true,
@@ -47,16 +58,45 @@ export async function GET(
 
   if (
     file.uploadStatus !== "UPLOADED" ||
-    !file.cloudinaryPublicId ||
     !isTrustedCloudinaryAssetUrl(file.cloudinaryUrl)
   ) {
     return NextResponse.json({ error: "File is not available." }, { status: 409 });
   }
 
-  const signedUrl = createSignedAssetDeliveryUrl({
-    cloudinaryPublicId: file.cloudinaryPublicId,
-    version: getCloudinaryAssetVersion(file.cloudinaryUrl),
-  });
+  const assetUrl = file.cloudinaryUrl;
 
-  return NextResponse.redirect(signedUrl);
+  if (!assetUrl) {
+    return NextResponse.json({ error: "File is not available." }, { status: 409 });
+  }
+
+  const assetResponse = await fetch(assetUrl, {
+    cache: "no-store",
+  }).catch(() => null);
+
+  if (!assetResponse?.ok || !assetResponse.body) {
+    return NextResponse.json(
+      { error: "We couldn't open this file right now." },
+      { status: 502 },
+    );
+  }
+
+  const filename = isGeneratedTemplateFileName(file.originalName)
+    ? buildTemplateFilename(file.createdAt)
+    : file.originalName;
+  const headers = new Headers();
+  const contentType = assetResponse.headers.get("Content-Type") ?? file.mimeType;
+  const contentLength = assetResponse.headers.get("Content-Length");
+
+  headers.set("Content-Type", contentType);
+  headers.set("Content-Disposition", buildInlineContentDisposition(filename));
+  headers.set("Cache-Control", "private, no-store");
+
+  if (contentLength) {
+    headers.set("Content-Length", contentLength);
+  }
+
+  return new Response(assetResponse.body, {
+    status: 200,
+    headers,
+  });
 }
