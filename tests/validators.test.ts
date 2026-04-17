@@ -19,7 +19,7 @@ test("signupSchema accepts the required customer profile fields", () => {
   assert.equal(result.success, true);
 });
 
-test("createOrderSchema rejects non-PDF uploads", () => {
+test("createOrderSchema accepts non-PDF uploads", () => {
   const result = createOrderSchema.safeParse({
     files: [
       {
@@ -31,7 +31,7 @@ test("createOrderSchema rejects non-PDF uploads", () => {
     ],
   });
 
-  assert.equal(result.success, false);
+  assert.equal(result.success, true);
 });
 
 test("uploadFinalizeSchema requires Cloudinary fields on success", () => {

@@ -11,9 +11,9 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/page.tsx`
   Primary upload page.
   Logged-out users see a centered signup/login card with the Lami logo above it.
-  Logged-in users see the PDF uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
+  Logged-in users see the artwork uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
-  The preview window uses a custom rendered PDF preview with no browser toolbar, and the empty preview state accepts drag/drop uploads directly.
+  The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, and shows left/right controls when multiple files are loaded.
 - `src/app/signup/page.tsx`
   Customer auth screen with signup selected by default.
 - `src/app/login/page.tsx`
@@ -37,12 +37,12 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Login validates the password, optionally enforces admin-only access, and sets the same session cookie.
   Logout deletes the persisted session and clears the cookie.
 - Upload:
-  The client validates/selects PDFs, previews the selected file locally, and calculates price client-side using shared pricing constants.
-  The preview panel renders PDFs without the browser PDF toolbar and also acts as a drag/drop target when empty or populated.
+  The client selects artwork files, previews the selected file locally when possible, and calculates price client-side using shared pricing constants.
+  The preview panel renders PDFs without the browser PDF toolbar, renders images inline, falls back to a file placeholder for unsupported preview types, and acts as a drag/drop target when empty or populated.
   On upload, the app first creates an order plus `order_files` records in PostgreSQL.
   After the order exists, the UI starts the upload modal and background-upload flow.
   Each file gets a signed Cloudinary upload config from the server and uploads directly to Cloudinary under `DTF/{userId}/{orderId}`.
-  Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted by checking the uploaded asset URL plus the file's PDF signature; browser-supplied file URLs are never trusted.
+  Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted by checking the expected Cloudinary public ID and trusted raw-upload URL; browser-supplied file URLs are never trusted.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
@@ -94,8 +94,8 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 
 - Prices are stored in pence, never floats.
 - VAT is fixed at 20%.
-- Only PDFs are accepted in V1 uploads.
-- Direct Cloudinary uploads are verified as PDFs during finalize by inspecting the uploaded asset signature, so Illustrator-tagged PDFs are allowed if the underlying file is a real PDF.
+- V1 accepts any file type up to the existing per-file size limit.
+- Direct Cloudinary uploads are verified as trusted raw assets during finalize; the server no longer restricts uploads to PDFs.
 - The upload modal follows real upload completion instead of a fixed timer.
 - The public home page has no header; the header appears only after authentication.
 - Shared business rules live in `src/lib/*`.

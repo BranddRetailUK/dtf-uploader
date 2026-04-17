@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { getCurrentUser } from "@/lib/auth";
-import { verifyUploadedPdfAsset } from "@/lib/cloudinary";
+import { verifyUploadedAsset } from "@/lib/cloudinary";
 import { deriveOrderStatus, getSerializedOrderById } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { RateLimitExceededError, enforceRateLimit } from "@/lib/rate-limit";
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
   const verifiedAsset =
     payload.data.success && payload.data.cloudinaryPublicId
-      ? await verifyUploadedPdfAsset({
+      ? await verifyUploadedAsset({
           userId: user.id,
           orderId: existingFile.orderId,
           orderFileId: existingFile.id,
@@ -94,7 +94,6 @@ export async function POST(request: Request) {
       cloudinaryPublicId: verifiedAsset.cloudinaryPublicId,
       cloudinaryUrl: verifiedAsset.cloudinaryUrl,
       bytes: verifiedAsset.bytes,
-      mimeType: "application/pdf",
       errorMessage: null,
     };
   } else {

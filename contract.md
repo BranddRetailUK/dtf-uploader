@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- Provide a customer-facing PDF upload flow for DTF jobs.
+- Provide a customer-facing artwork upload flow for DTF jobs.
 - Store uploads in Cloudinary under a `DTF/` folder hierarchy.
 - Persist users, orders, files, and statuses in PostgreSQL.
 - Expose a simple admin inbox for received work.
@@ -10,30 +10,29 @@
 
 ## Scope
 
-- V1 includes auth, PDF uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
+- V1 includes auth, artwork uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
 - V1 does not include online payment.
 - V2 behavior is scaffolded visually only; no auto-arrange or duplication logic is implemented yet.
 
 ## Business Rules
 
-- Price per PDF: `£14.00`.
+- Price per file: `£14.00`.
 - VAT: `20%`.
 - Totals are stored in pence.
 - Order subtotal = `fileCount * 1400`.
 - Order VAT = `round(subtotal * 0.20)`.
 - Order total = `subtotal + vat`.
-- Only PDF files are accepted in V1 upload creation.
 - A successful upload is not accepted from browser metadata alone:
   - the browser reports only the Cloudinary `public_id`
   - the server verifies the asset exists in Cloudinary
   - the server verifies the asset is a trusted `raw` upload URL
-  - the server verifies the uploaded file bytes start with a PDF signature
   - the stored URL/bytes come from verified Cloudinary metadata, not the browser payload
 - Only trusted Cloudinary HTTPS raw-upload URLs are exposed back to profile/admin responses.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
   - after order creation, the UI shows an upload modal while background uploads are running
   - the success state is shown only after the real upload completes
+  - the success tick remains visible briefly before the order view refreshes
   - real upload failures are persisted and surfaced later in profile/admin
 - Order status derivation during upload finalization:
   - any file `FAILED` => order `FAILED`
@@ -107,9 +106,10 @@
   - Lami logo above the auth card
 - Logged in:
   - two-column upload layout
-  - left-column selected PDF preview window with no browser PDF toolbar
-  - the preview window also accepts drag/drop PDF uploads
-  - right-column multi-file PDF selection box
+  - left-column selected file preview window with no browser PDF toolbar
+  - the preview window accepts drag/drop file uploads
+  - left/right preview arrows appear when multiple files are loaded
+  - right-column multi-file artwork selection box
   - price summary below the upload box
   - send button below the price summary
   - upload modal tied to real upload completion
@@ -205,7 +205,7 @@
 - Request:
   - `files: [{ clientId, name, size, type }]`
 - Logic:
-  - validate PDF metadata
+  - validate file metadata
   - apply fixed-window rate limits
   - calculate totals
   - create one `Order`
@@ -260,7 +260,7 @@
 - Logic:
   - apply fixed-window rate limits
   - verify successful uploads against Cloudinary using the expected per-file public ID
-  - reject assets that are not verified raw uploads with a valid PDF file signature
+  - reject assets that are not verified trusted raw uploads
   - update the file row from verified Cloudinary metadata
   - recalculate the parent order status from all file states
 - Response:

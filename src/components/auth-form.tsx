@@ -21,7 +21,7 @@ const modeConfig: Record<
   signup: {
     title: "Create your account",
     description:
-      "Sign up to upload your PDF files, track previous orders, and keep everything in one place.",
+      "Sign up to upload your artwork files, track previous orders, and keep everything in one place.",
     endpoint: "/api/auth/signup",
     submitLabel: "Create account",
     successPath: "/",
@@ -263,7 +263,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </div>
       ) : (
         <p className="mt-6 text-center text-sm leading-6 text-[#666666]">
-          Upload your PDF files, review previous orders, and keep each job tied to
+          Upload your artwork files, review previous orders, and keep each job tied to
           your account.
         </p>
       )}

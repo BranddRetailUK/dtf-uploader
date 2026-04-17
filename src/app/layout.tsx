@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s | DTF Uploader",
   },
   description:
-    "Customer PDF upload workflow with Cloudinary storage, profile history, and an admin production inbox.",
+    "Customer artwork upload workflow with Cloudinary storage, profile history, and an admin production inbox.",
 };
 
 export default async function RootLayout({

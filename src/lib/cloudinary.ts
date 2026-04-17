@@ -26,12 +26,20 @@ function sanitizeFileStem(originalName: string) {
   return sanitized || "upload";
 }
 
+function sanitizeFileExtension(originalName: string) {
+  const match = originalName.toLowerCase().match(/\.([a-z0-9]{1,12})$/);
+
+  return match ? `.${match[1]}` : "";
+}
+
 export function buildCloudinaryFolder(userId: string, orderId: string) {
   return `DTF/${userId}/${orderId}`;
 }
 
 export function buildCloudinaryAssetName(orderFileId: string, originalName: string) {
-  return `${orderFileId}-${sanitizeFileStem(originalName)}.pdf`;
+  return `${orderFileId}-${sanitizeFileStem(originalName)}${sanitizeFileExtension(
+    originalName,
+  )}`;
 }
 
 export function buildCloudinaryPublicId(input: {
@@ -65,48 +73,6 @@ export function isTrustedCloudinaryAssetUrl(url: string | null | undefined) {
   }
 }
 
-export function hasPdfSignature(bytes: Uint8Array) {
-  const pdfHeader = [0x25, 0x50, 0x44, 0x46, 0x2d];
-
-  return pdfHeader.every((byte, index) => bytes[index] === byte);
-}
-
-async function assetHasPdfSignature(url: string) {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Range: "bytes=0-4",
-      },
-      cache: "no-store",
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const bytes = new Uint8Array(await response.arrayBuffer());
-
-    return hasPdfSignature(bytes);
-  } catch {
-    return false;
-  }
-}
-
-async function destroyRawAsset(publicId: string) {
-  try {
-    configureCloudinary();
-
-    await cloudinary.uploader.destroy(publicId, {
-      resource_type: "raw",
-      type: "upload",
-      invalidate: true,
-    });
-  } catch {
-    // Best-effort cleanup for rejected uploads.
-  }
-}
-
 export function createSignedUploadPayload(input: {
   userId: string;
   orderId: string;
@@ -118,7 +84,7 @@ export function createSignedUploadPayload(input: {
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = buildCloudinaryFolder(input.userId, input.orderId);
   const publicId = buildCloudinaryAssetName(input.orderFileId, input.originalName);
-  const tags = ["dtf", "pdf", input.orderId].join(",");
+  const tags = ["dtf", "upload", input.orderId].join(",");
 
   const signature = cloudinary.utils.api_sign_request(
     {
@@ -143,7 +109,7 @@ export function createSignedUploadPayload(input: {
   };
 }
 
-export async function verifyUploadedPdfAsset(input: {
+export async function verifyUploadedAsset(input: {
   userId: string;
   orderId: string;
   orderFileId: string;
@@ -180,15 +146,6 @@ export async function verifyUploadedPdfAsset(input: {
       return {
         ok: false as const,
         error: "Uploaded file could not be verified.",
-      };
-    }
-
-    if (!(await assetHasPdfSignature(resource.secure_url!))) {
-      await destroyRawAsset(expectedPublicId);
-
-      return {
-        ok: false as const,
-        error: "Only PDF files are allowed.",
       };
     }
 

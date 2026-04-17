@@ -22,7 +22,7 @@ export default async function ProfilePage() {
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#666666] sm:mx-0">
               Your previous orders will appear here as soon as you send your first
-              PDF files.
+              files.
             </p>
           </div>
 

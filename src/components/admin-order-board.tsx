@@ -115,7 +115,7 @@ export function AdminOrderBoard({ initialOrders }: { initialOrders: OrderSummary
               </h2>
               <div className="flex flex-wrap gap-3 text-sm text-[#666666]">
                 <span>{formatDateTime(order.createdAt)}</span>
-                <span>{order.fileCount} PDF files</span>
+                <span>{order.fileCount} file{order.fileCount === 1 ? "" : "s"}</span>
                 <span>{formatCurrencyFromPence(order.totalPence)} total</span>
               </div>
             </div>

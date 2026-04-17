@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 
 import {
   buildCloudinaryPublicId,
-  hasPdfSignature,
   isTrustedCloudinaryAssetUrl,
 } from "@/lib/cloudinary";
 
@@ -16,26 +15,15 @@ function setCloudinaryTestEnv() {
   process.env.CLOUDINARY_API_SECRET ??= "secret";
 }
 
-test("buildCloudinaryPublicId normalizes the filename and enforces a pdf suffix", () => {
+test("buildCloudinaryPublicId normalizes the filename and preserves the original extension", () => {
   const publicId = buildCloudinaryPublicId({
     userId: "user_1",
     orderId: "order_1",
     orderFileId: "file_1",
-    originalName: "My Print Ready File.PDF",
+    originalName: "My Print Ready File.AI",
   });
 
-  assert.equal(publicId, "DTF/user_1/order_1/file_1-my-print-ready-file.pdf");
-});
-
-test("hasPdfSignature detects a valid PDF header", () => {
-  assert.equal(
-    hasPdfSignature(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31])),
-    true,
-  );
-  assert.equal(
-    hasPdfSignature(new Uint8Array([0x89, 0x50, 0x4e, 0x47])),
-    false,
-  );
+  assert.equal(publicId, "DTF/user_1/order_1/file_1-my-print-ready-file.ai");
 });
 
 test("isTrustedCloudinaryAssetUrl only accepts the configured Cloudinary raw upload path", () => {

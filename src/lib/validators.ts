@@ -1,11 +1,5 @@
 import { z } from "zod";
 
-function isPdfFile(name: string, mimeType: string) {
-  return (
-    mimeType.toLowerCase().includes("pdf") || name.toLowerCase().endsWith(".pdf")
-  );
-}
-
 export const signupSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
@@ -23,17 +17,12 @@ export const loginSchema = z.object({
 export const createOrderSchema = z.object({
   files: z
     .array(
-      z
-        .object({
-          clientId: z.string().trim().min(1).max(120),
-          name: z.string().trim().min(1).max(200),
-          size: z.number().int().positive().max(250 * 1024 * 1024),
-          type: z.string().trim().min(1).max(120),
-        })
-        .refine(
-          ({ name, type }) => isPdfFile(name, type),
-          "Only PDF files are supported.",
-        ),
+      z.object({
+        clientId: z.string().trim().min(1).max(120),
+        name: z.string().trim().min(1).max(200),
+        size: z.number().int().positive().max(250 * 1024 * 1024),
+        type: z.string().trim().min(1).max(120),
+      }),
     )
     .min(1)
     .max(40),

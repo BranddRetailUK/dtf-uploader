@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
+  FiChevronLeft,
+  FiChevronRight,
   FiCheck,
   FiFileText,
   FiLoader,
@@ -14,7 +17,7 @@ import { formatCurrencyFromPence, formatFileSize } from "@/lib/format";
 import { calculatePriceBreakdown } from "@/lib/pricing";
 import { PdfPreview } from "@/components/pdf-preview";
 
-type LocalPdf = {
+type LocalUpload = {
   clientId: string;
   file: File;
   name: string;
@@ -49,8 +52,15 @@ type UploadSignResponse = {
   uploadUrl: string;
 };
 
-function isPdf(file: File) {
-  return file.type.toLowerCase().includes("pdf") || file.name.endsWith(".pdf");
+function isPdfFile(file: Pick<LocalUpload, "name" | "type">) {
+  return (
+    file.type.toLowerCase().includes("pdf") ||
+    file.name.toLowerCase().endsWith(".pdf")
+  );
+}
+
+function isImageFile(file: Pick<LocalUpload, "type">) {
+  return file.type.toLowerCase().startsWith("image/");
 }
 
 function getErrorMessage(error: unknown) {
@@ -60,7 +70,7 @@ function getErrorMessage(error: unknown) {
 export function UploadStudio() {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [files, setFiles] = useState<LocalPdf[]>([]);
+  const [files, setFiles] = useState<LocalUpload[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -73,7 +83,7 @@ export function UploadStudio() {
     "idle",
   );
 
-  const fileRef = useRef<LocalPdf[]>([]);
+  const fileRef = useRef<LocalUpload[]>([]);
   const successTimerRef = useRef<number | null>(null);
   const dragDepthRef = useRef(0);
 
@@ -93,6 +103,9 @@ export function UploadStudio() {
 
   const selectedFile =
     files.find((file) => file.clientId === selectedId) ?? files[0] ?? null;
+  const selectedIndex = selectedFile
+    ? files.findIndex((file) => file.clientId === selectedFile.clientId)
+    : -1;
   const pricing = calculatePriceBreakdown(files.length);
 
   function handleDragEnter(event: React.DragEvent<HTMLElement>) {
@@ -137,10 +150,14 @@ export function UploadStudio() {
     }
 
     setModalPhase("success");
-    successTimerRef.current = window.setTimeout(() => {
-      setModalPhase("idle");
-      successTimerRef.current = null;
-    }, 900);
+
+    return new Promise<void>((resolve) => {
+      successTimerRef.current = window.setTimeout(() => {
+        setModalPhase("idle");
+        successTimerRef.current = null;
+        resolve();
+      }, 1800);
+    });
   }
 
   function hideModal() {
@@ -153,37 +170,26 @@ export function UploadStudio() {
   }
 
   function consumeFiles(nextFiles: File[]) {
-    const accepted = nextFiles.filter(isPdf);
-    const rejected = nextFiles.length - accepted.length;
-
-    if (accepted.length === 0) {
+    if (nextFiles.length === 0) {
       setFeedback({
         tone: "warning",
-        message: "Please choose PDF files only.",
+        message: "Please choose one or more files.",
       });
       return;
     }
 
-    const mapped = accepted.map((file) => ({
+    const mapped = nextFiles.map((file) => ({
       clientId: crypto.randomUUID(),
       file,
       name: file.name,
-      type: file.type || "application/pdf",
+      type: file.type || "application/octet-stream",
       size: file.size,
       previewUrl: URL.createObjectURL(file),
     }));
 
     setFiles((current) => [...current, ...mapped]);
     setSelectedId((current) => current ?? mapped[0]?.clientId ?? null);
-
-    if (rejected > 0) {
-      setFeedback({
-        tone: "warning",
-        message: `${rejected} file${rejected === 1 ? "" : "s"} were skipped because only PDFs are supported.`,
-      });
-    } else {
-      setFeedback(null);
-    }
+    setFeedback(null);
   }
 
   function handleFileInput(event: React.ChangeEvent<HTMLInputElement>) {
@@ -214,7 +220,22 @@ export function UploadStudio() {
     });
   }
 
-  async function createOrder(snapshot: LocalPdf[]) {
+  function showAdjacentPreview(direction: "previous" | "next") {
+    if (files.length < 2) {
+      return;
+    }
+
+    const currentIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    const delta = direction === "next" ? 1 : -1;
+    const nextIndex = (currentIndex + delta + files.length) % files.length;
+    const nextFile = files[nextIndex];
+
+    if (nextFile) {
+      setSelectedId(nextFile.clientId);
+    }
+  }
+
+  async function createOrder(snapshot: LocalUpload[]) {
     const response = await fetch("/api/orders", {
       method: "POST",
       headers: {
@@ -244,7 +265,7 @@ export function UploadStudio() {
   async function uploadSingleFile(
     orderId: string,
     orderFileId: string,
-    file: LocalPdf,
+    file: LocalUpload,
   ) {
     let finalizeRequestSent = false;
 
@@ -345,7 +366,7 @@ export function UploadStudio() {
   }
 
   async function runBackgroundUpload(
-    snapshot: LocalPdf[],
+    snapshot: LocalUpload[],
     orderResponse: OrderCreateResponse,
   ) {
     setActiveBackgroundUploads((current) => current + 1);
@@ -381,13 +402,15 @@ export function UploadStudio() {
 
       if (failures > 0) {
         hideModal();
+        startTransition(() => {
+          router.refresh();
+        });
       } else {
-        showSuccessModal();
+        await showSuccessModal();
+        startTransition(() => {
+          router.refresh();
+        });
       }
-
-      startTransition(() => {
-        router.refresh();
-      });
     } catch (error) {
       hideModal();
       setFeedback({
@@ -397,6 +420,118 @@ export function UploadStudio() {
     } finally {
       setActiveBackgroundUploads((current) => Math.max(0, current - 1));
     }
+  }
+
+  function renderSelectedPreview() {
+    if (!selectedFile) {
+      return (
+        <div
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`preview-shell flex h-[700px] items-center justify-center border-dashed px-8 text-center transition ${
+            isDragging
+              ? "border-[#7e00ff] bg-[#f7f1ff]"
+              : "border-[#1c1c1c]/10 bg-[#fafafa]"
+          }`}
+        >
+          <div className="flex max-w-sm flex-col items-center gap-4">
+            <div className="flex size-16 items-center justify-center rounded-[1.5rem] bg-[#f4ebff] text-[#7e00ff]">
+              <FiUploadCloud className="size-7" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xl font-semibold text-[#1c1c1c]">
+                Drag or upload artwork
+              </p>
+              <p className="text-sm leading-7 text-[#666666]">
+                Drop files here or use the upload area to choose files from your
+                device.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    let content: React.ReactNode;
+
+    if (isPdfFile(selectedFile)) {
+      content = (
+        <PdfPreview
+          src={selectedFile.previewUrl}
+          title={selectedFile.name}
+        />
+      );
+    } else if (isImageFile(selectedFile)) {
+      content = (
+        <div className="preview-shell relative flex h-[700px] items-center justify-center overflow-hidden bg-[#fafafa] p-6">
+          <Image
+            src={selectedFile.previewUrl}
+            alt={selectedFile.name}
+            fill
+            unoptimized
+            sizes="(min-width: 1280px) 60vw, 100vw"
+            className="object-contain p-6"
+          />
+        </div>
+      );
+    } else {
+      content = (
+        <div className="preview-shell flex h-[700px] items-center justify-center bg-[#fafafa] px-8 text-center">
+          <div className="flex max-w-sm flex-col items-center gap-4">
+            <div className="flex size-16 items-center justify-center rounded-[1.5rem] bg-[#f4ebff] text-[#7e00ff]">
+              <FiFileText className="size-7" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xl font-semibold text-[#1c1c1c]">
+                Preview not available
+              </p>
+              <p className="text-sm leading-7 text-[#666666]">
+                This file type can still be uploaded, even though it can&apos;t be
+                rendered in the preview window.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative transition ${isDragging ? "scale-[0.998]" : ""}`}
+      >
+        {content}
+
+        {files.length > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={() => showAdjacentPreview("previous")}
+              className="absolute left-4 top-1/2 z-10 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#1c1c1c]/8 bg-white/92 text-[#1c1c1c] shadow-[0_12px_28px_rgba(28,28,28,0.1)] transition hover:border-[#7e00ff]/24 hover:text-[#7e00ff]"
+              aria-label="Show previous file preview"
+            >
+              <FiChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => showAdjacentPreview("next")}
+              className="absolute right-4 top-1/2 z-10 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#1c1c1c]/8 bg-white/92 text-[#1c1c1c] shadow-[0_12px_28px_rgba(28,28,28,0.1)] transition hover:border-[#7e00ff]/24 hover:text-[#7e00ff]"
+              aria-label="Show next file preview"
+            >
+              <FiChevronRight className="size-5" />
+            </button>
+            <div className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 rounded-full border border-[#1c1c1c]/8 bg-white/92 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-[#666666] shadow-[0_12px_28px_rgba(28,28,28,0.08)]">
+              {selectedIndex + 1} / {files.length}
+            </div>
+          </>
+        ) : null}
+      </div>
+    );
   }
 
   async function handleUpload() {
@@ -440,60 +575,25 @@ export function UploadStudio() {
               <div>
                 <p className="eyebrow">Preview</p>
                 <h2 className="mt-2 text-xl font-semibold text-[#1c1c1c]">
-                  {selectedFile?.name ?? "Select a PDF to preview"}
+                  {selectedFile?.name ?? "Select a file to preview"}
                 </h2>
               </div>
 
               {selectedFile ? (
-                <div className="rounded-full border border-[#1c1c1c]/10 bg-[#faf8ff] px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[#666666]">
-                  {formatFileSize(selectedFile.size)}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-full border border-[#1c1c1c]/10 bg-[#faf8ff] px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[#666666]">
+                    {formatFileSize(selectedFile.size)}
+                  </div>
+                  {files.length > 1 ? (
+                    <div className="rounded-full border border-[#1c1c1c]/10 bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[#666666]">
+                      {selectedIndex + 1} of {files.length}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
 
-            <div className="mt-5">
-              {selectedFile ? (
-                <div
-                  onDragEnter={handleDragEnter}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`transition ${isDragging ? "scale-[0.998]" : ""}`}
-                >
-                  <PdfPreview
-                    src={selectedFile.previewUrl}
-                    title={selectedFile.name}
-                  />
-                </div>
-              ) : (
-                <div
-                  onDragEnter={handleDragEnter}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`preview-shell flex h-[700px] items-center justify-center border-dashed px-8 text-center transition ${
-                    isDragging
-                      ? "border-[#7e00ff] bg-[#f7f1ff]"
-                      : "border-[#1c1c1c]/10 bg-[#fafafa]"
-                  }`}
-                >
-                  <div className="flex max-w-sm flex-col items-center gap-4">
-                    <div className="flex size-16 items-center justify-center rounded-[1.5rem] bg-[#f4ebff] text-[#7e00ff]">
-                      <FiUploadCloud className="size-7" />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xl font-semibold text-[#1c1c1c]">
-                        Drag or upload artwork
-                      </p>
-                      <p className="text-sm leading-7 text-[#666666]">
-                        Drop PDF files here or use the upload area to choose files
-                        from your device.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <div className="mt-5">{renderSelectedPreview()}</div>
           </div>
 
           <div className="space-y-4">
@@ -511,7 +611,7 @@ export function UploadStudio() {
               </div>
 
               <h2 className="mt-5 text-xl font-semibold text-[#1c1c1c]">
-                Add PDF files
+                Add artwork files
               </h2>
               <p className="mt-2 text-sm leading-7 text-[#666666]">
                 Drag and drop your files here or choose them from your device.
@@ -521,7 +621,6 @@ export function UploadStudio() {
                 Choose files
                 <input
                   type="file"
-                  accept="application/pdf,.pdf"
                   multiple
                   className="hidden"
                   onChange={handleFileInput}
