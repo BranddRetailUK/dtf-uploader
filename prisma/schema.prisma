@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  UPLOADING
+  RECEIVED
+  IN_PRODUCTION
+  COMPLETED
+  FAILED
+}
+
+enum UploadStatus {
+  PENDING
+  UPLOADING
+  UPLOADED
+  FAILED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  role         UserRole  @default(USER)
+  firstName    String
+  lastName     String
+  companyName  String
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+  orders       Order[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  status        OrderStatus @default(UPLOADING)
+  fileCount     Int
+  subtotalPence Int
+  vatPence      Int
+  totalPence    Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files         OrderFile[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model OrderFile {
+  id                 String       @id @default(cuid())
+  orderId            String
+  originalName       String
+  mimeType           String
+  bytes              Int
+  uploadStatus       UploadStatus @default(PENDING)
+  cloudinaryPublicId String?
+  cloudinaryUrl      String?
+  errorMessage       String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  order              Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([uploadStatus])
+}

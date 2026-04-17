@@ -1,12 +1,13 @@
+import { redirect } from "next/navigation";
+
 import { CustomerAuthScreen } from "@/components/customer-auth-screen";
-import { UploadStudio } from "@/components/upload-studio";
 import { getCurrentUser } from "@/lib/auth";
 
-export default async function HomePage() {
+export default async function SignupPage() {
   const user = await getCurrentUser();
 
   if (user) {
-    return <UploadStudio firstName={user.firstName} companyName={user.companyName} />;
+    redirect("/");
   }
 
   return <CustomerAuthScreen initialMode="signup" />;
