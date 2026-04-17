@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FiExternalLink, FiUploadCloud } from "react-icons/fi";
 
+import { LogoutButton } from "@/components/logout-button";
 import { StatusBadge } from "@/components/status-badge";
 import { requireUser } from "@/lib/auth";
 import { formatCurrencyFromPence, formatDateTime, formatFileSize } from "@/lib/format";
@@ -12,15 +13,22 @@ export default async function ProfilePage() {
 
   if (orders.length === 0) {
     return (
-      <section className="surface-panel text-center">
-        <p className="eyebrow">Your uploads</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
-          No uploads yet
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#666666]">
-          Your previous orders will appear here as soon as you send your first PDF
-          files.
-        </p>
+      <section className="surface-panel">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="text-center sm:text-left">
+            <p className="eyebrow">Your uploads</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
+              No uploads yet
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#666666] sm:mx-0">
+              Your previous orders will appear here as soon as you send your first
+              PDF files.
+            </p>
+          </div>
+
+          <LogoutButton />
+        </div>
+
         <Link
           href="/"
           className="primary-button mt-8 inline-flex px-5 py-3 text-sm"
@@ -35,14 +43,20 @@ export default async function ProfilePage() {
   return (
     <section className="space-y-6">
       <div className="surface-panel">
-        <p className="eyebrow">Your uploads</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
-          Previous uploads for {user.companyName}
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-[#666666]">
-          Review each order, see every file inside it, and check whether an upload
-          completed successfully.
-        </p>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="eyebrow">Your uploads</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
+              Previous uploads for {user.companyName}
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#666666]">
+              Review each order, see every file inside it, and check whether an
+              upload completed successfully.
+            </p>
+          </div>
+
+          <LogoutButton />
+        </div>
       </div>
 
       {orders.map((order) => (

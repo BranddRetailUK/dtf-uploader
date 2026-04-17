@@ -12,12 +12,14 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Primary upload page.
   Logged-out users see a centered signup/login card with the Lami logo above it.
   Logged-in users see the PDF uploader with a left-column preview window, right-column file box, price block, send button, and timed optimistic upload modal.
+  The upload page no longer shows an introductory heading/copy above the two-column workspace.
 - `src/app/signup/page.tsx`
   Customer auth screen with signup selected by default.
 - `src/app/login/page.tsx`
   Customer auth screen with login selected by default.
 - `src/app/profile/page.tsx`
   Authenticated order history with per-order totals and file-level status.
+  The logout button lives on this page rather than in the shared header.
 - `src/app/admin/login/page.tsx`
   Admin-only login entrypoint.
 - `src/app/admin/page.tsx`
@@ -44,6 +46,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
   The signed-in header uses a separate logo asset from the public auth screen.
+  In the signed-in header, navigation pills sit directly to the right of the logo and no account/company pill is shown.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 layout scaffold:

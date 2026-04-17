@@ -58,10 +58,7 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-export function UploadStudio(props: {
-  firstName: string;
-  companyName: string;
-}) {
+export function UploadStudio() {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [files, setFiles] = useState<LocalPdf[]>([]);
@@ -388,19 +385,7 @@ export function UploadStudio(props: {
 
   return (
     <>
-      <section className="space-y-6">
-        <div className="space-y-3">
-          <p className="eyebrow">Upload files</p>
-          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c] sm:text-4xl">
-            Upload your PDF artwork
-          </h1>
-          <p className="max-w-2xl text-sm leading-7 text-[#666666]">
-            Hello {props.firstName}. Add ready-to-print PDF files for{" "}
-            {props.companyName}, check each file in the preview window, then send
-            them in one order.
-          </p>
-        </div>
-
+      <section>
         <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
           <div className="surface-panel">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1c1c1c]/8 pb-4">
@@ -523,7 +508,9 @@ export function UploadStudio(props: {
             <div className="rounded-[2rem] border border-[#7e00ff]/14 bg-[#faf8ff] p-5">
               <p className="eyebrow">Price</p>
               <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
-                {formatCurrencyFromPence(pricing.unitPricePence)} + VAT per file
+                {pricing.fileCount === 0
+                  ? "£0"
+                  : `${formatCurrencyFromPence(pricing.unitPricePence)} + VAT per file`}
               </p>
               <p className="mt-3 text-sm leading-7 text-[#666666]">
                 {pricing.fileCount > 0
