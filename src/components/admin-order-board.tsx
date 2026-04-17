@@ -193,9 +193,9 @@ export function AdminOrderBoard({ initialOrders }: { initialOrders: OrderSummary
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <StatusBadge status={file.uploadStatus} kind="file" />
-                      {file.cloudinaryUrl ? (
+                      {file.cloudinaryPublicId ? (
                         <a
-                          href={file.cloudinaryUrl}
+                          href={`/api/files/${file.id}`}
                           target="_blank"
                           rel="noreferrer"
                           className="secondary-button px-3 py-1.5 text-sm"

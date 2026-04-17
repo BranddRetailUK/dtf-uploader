@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   buildCloudinaryPublicId,
+  createSignedAssetDeliveryUrl,
+  getCloudinaryAssetVersion,
   isTrustedCloudinaryAssetUrl,
 } from "@/lib/cloudinary";
 
@@ -40,4 +42,28 @@ test("isTrustedCloudinaryAssetUrl only accepts the configured Cloudinary raw upl
     false,
   );
   assert.equal(isTrustedCloudinaryAssetUrl("javascript:alert(1)"), false);
+});
+
+test("getCloudinaryAssetVersion parses a raw upload version from the stored URL", () => {
+  assert.equal(
+    getCloudinaryAssetVersion(
+      "https://res.cloudinary.com/demo-cloud/raw/upload/v1776417996/DTF/u/o/file.pdf",
+    ),
+    1776417996,
+  );
+  assert.equal(getCloudinaryAssetVersion("https://example.com/file.pdf"), null);
+});
+
+test("createSignedAssetDeliveryUrl creates a signed raw upload URL", () => {
+  setCloudinaryTestEnv();
+
+  const signedUrl = createSignedAssetDeliveryUrl({
+    cloudinaryPublicId: "DTF/user_1/order_1/file_1-my-print-ready-file.pdf",
+    version: 1776417996,
+  });
+
+  assert.match(
+    signedUrl,
+    /^https:\/\/res\.cloudinary\.com\/demo-cloud\/raw\/upload\/s--[A-Za-z0-9_-]+--\/v1776417996\/DTF\/user_1\/order_1\/file_1-my-print-ready-file\.pdf(?:\?.*)?$/,
+  );
 });

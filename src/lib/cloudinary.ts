@@ -73,6 +73,27 @@ export function isTrustedCloudinaryAssetUrl(url: string | null | undefined) {
   }
 }
 
+export function getCloudinaryAssetVersion(url: string | null | undefined) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/\/raw\/upload\/v(\d+)\//);
+
+    if (!match) {
+      return null;
+    }
+
+    const version = Number(match[1]);
+
+    return Number.isFinite(version) ? version : null;
+  } catch {
+    return null;
+  }
+}
+
 export function createSignedUploadPayload(input: {
   userId: string;
   orderId: string;
@@ -107,6 +128,22 @@ export function createSignedUploadPayload(input: {
     resourceType: "raw",
     uploadUrl: `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/raw/upload`,
   };
+}
+
+export function createSignedAssetDeliveryUrl(input: {
+  cloudinaryPublicId: string;
+  version?: number | null;
+}) {
+  configureCloudinary();
+
+  return cloudinary.url(input.cloudinaryPublicId, {
+    resource_type: "raw",
+    type: "upload",
+    secure: true,
+    sign_url: true,
+    analytics: false,
+    version: input.version ?? undefined,
+  });
 }
 
 export async function verifyUploadedAsset(input: {

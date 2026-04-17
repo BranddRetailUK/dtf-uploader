@@ -28,6 +28,7 @@
   - the server verifies the asset is a trusted `raw` upload URL
   - the stored URL/bytes come from verified Cloudinary metadata, not the browser payload
 - Only trusted Cloudinary HTTPS raw-upload URLs are exposed back to profile/admin responses.
+- Customer/admin file opening is served through an authenticated app route that redirects to a signed Cloudinary raw delivery URL.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
   - after order creation, the UI shows an upload modal while background uploads are running
@@ -268,6 +269,20 @@
   - updated order summary
   - may return `422` when asset verification fails
   - may return `429`
+
+### `GET /api/files/:fileId`
+
+- Auth:
+  - logged-in user required
+- Access:
+  - file owner or admin only
+- Logic:
+  - verify the file exists and belongs to the current user unless admin
+  - require an uploaded file with trusted stored Cloudinary metadata
+  - generate a signed Cloudinary raw delivery URL from the stored public ID
+  - redirect the browser to that signed URL
+- Response:
+  - redirect to signed file delivery URL
 
 ### `GET /api/admin/orders`
 

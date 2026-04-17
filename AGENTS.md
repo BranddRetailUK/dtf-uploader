@@ -28,7 +28,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/layout/page.tsx`
   V2 scaffold for artwork layout on a `560mm x 1000mm` template canvas.
 - `src/app/api/**`
-  JSON API surface for auth, order creation, Cloudinary signing/finalization, and admin status updates.
+  JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, and admin status updates.
 
 ## Main Flows
 
@@ -43,6 +43,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   After the order exists, the UI starts the upload modal and background-upload flow.
   Each file gets a signed Cloudinary upload config from the server and uploads directly to Cloudinary under `DTF/{userId}/{orderId}`.
   Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted by checking the expected Cloudinary public ID and trusted raw-upload URL; browser-supplied file URLs are never trusted.
+  Profile/admin file opening goes through an authenticated app route that redirects to a signed Cloudinary raw delivery URL, because the stored raw upload URLs are not relied on as customer-facing links.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
