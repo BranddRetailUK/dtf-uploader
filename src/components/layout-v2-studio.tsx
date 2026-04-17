@@ -689,7 +689,7 @@ export function LayoutV2Studio({
         return current;
       }
 
-      const safeDimension = Math.max(MIN_LAYOUT_ITEM_SIZE_MM, parsedValue);
+      const safeDimension = Math.max(0, parsedValue);
       const aspectRatio = parentArtwork.widthPx / parentArtwork.heightPx;
       const requestedWidthMm =
         dimension === "width" ? safeDimension : safeDimension * aspectRatio;
@@ -925,6 +925,7 @@ export function LayoutV2Studio({
                             min={MIN_LAYOUT_ITEM_SIZE_MM}
                             step={1}
                             value={currentValue}
+                            onFocus={(event) => event.currentTarget.select()}
                             onChange={(event) =>
                               updateArtworkDimension(
                                 group.groupId,

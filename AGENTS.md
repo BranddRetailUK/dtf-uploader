@@ -30,7 +30,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   V2 saved-layout workspace for artwork layout on a `560mm x 1000mm` template canvas.
   The page auto-provisions a saved layout shell when needed, persists background-mode changes through authenticated APIs, and removes developer-facing placeholder copy.
   The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, arrange all pieces, and duplicate the selected piece into a bounded grid.
-  Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable.
+  Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable with no `40mm` floor.
   Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.
   Duplicates are grouped under their original artwork in the list, and parent size changes resize the whole duplicate group.
   New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, and duplicate spacing uses a `10mm` gap.
@@ -60,6 +60,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit.
   The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
   Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
+  Size fields now accept `0mm` while typing so values like `100mm` can be entered directly without snapping up to `40mm`.
   The preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:

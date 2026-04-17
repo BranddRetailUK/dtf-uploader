@@ -5,7 +5,7 @@ import {
 
 export const LAYOUT_ITEM_GAP_MM = 10;
 export const LAYOUT_SCAN_STEP_MM = 8;
-export const MIN_LAYOUT_ITEM_SIZE_MM = 40;
+export const MIN_LAYOUT_ITEM_SIZE_MM = 0;
 export const DEFAULT_LAYOUT_ITEM_MAX_WIDTH_MM = 170;
 export const DEFAULT_LAYOUT_ITEM_MAX_HEIGHT_MM = 220;
 

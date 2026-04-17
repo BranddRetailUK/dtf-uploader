@@ -62,6 +62,19 @@ test("clampLayoutItemToCanvas keeps artwork inside the preview bounds", () => {
   assert.equal(item.yMm, 920);
 });
 
+test("clampLayoutItemToCanvas allows artwork to shrink to zero", () => {
+  const item = clampLayoutItemToCanvas({
+    id: "item_1",
+    xMm: 120,
+    yMm: 80,
+    widthMm: 0,
+    heightMm: 0,
+  });
+
+  assert.equal(item.widthMm, 0);
+  assert.equal(item.heightMm, 0);
+});
+
 test("arrangeLayoutItems packs artwork from the top left without overlap", () => {
   const arranged = arrangeLayoutItems([
     {

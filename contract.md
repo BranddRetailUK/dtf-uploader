@@ -45,6 +45,7 @@
   - artwork can be added directly onto the preview by drag/drop or file picker
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
   - each parent artwork row in the left-hand list exposes `W` and `H` millimetre steppers with a directly editable number field between the arrows
+  - manual size entry allows `0mm` while typing instead of snapping to a `40mm` minimum
   - each parent artwork row also exposes a copy-count stepper with arrow buttons and direct number entry
   - duplicate rows are grouped under their original artwork in the left-hand list
   - parent size changes resize the entire duplicate group while keeping duplicate spacing at `10mm`
@@ -219,6 +220,7 @@
 - Light/dark background toggle persisted to the selected layout.
 - Direct artwork intake on the preview via drag/drop or file picker.
 - Parent artwork sizing is edited from `W` and `H` steppers in the left-hand artwork list, with direct number entry between the arrows.
+- Size inputs can be typed down to `0mm`, so entering values like `100mm` no longer snaps the artwork up to a `40mm` minimum mid-entry.
 - Parent artwork copy count is edited from a matching stepper with direct number entry.
 - The preview does not show file-title badges, resize handles, or bounding boxes on artwork.
 - `Arrange` repacks current artwork inside the printable bounds.
