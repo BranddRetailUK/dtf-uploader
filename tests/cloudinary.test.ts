@@ -5,6 +5,7 @@ import {
   buildCloudinaryPublicId,
   buildLayoutAssetCloudinaryFolder,
   buildLayoutOutputCloudinaryFolder,
+  createSignedAssetDownloadUrl,
   createSignedAssetDeliveryUrl,
   getCloudinaryAssetVersion,
   isTrustedCloudinaryAssetUrl,
@@ -78,5 +79,20 @@ test("createSignedAssetDeliveryUrl creates a signed raw upload URL", () => {
   assert.match(
     signedUrl,
     /^https:\/\/res\.cloudinary\.com\/demo-cloud\/raw\/upload\/s--[A-Za-z0-9_-]+--\/v1776417996\/DTF\/user_1\/order_1\/file_1-my-print-ready-file\.pdf(?:\?.*)?$/,
+  );
+});
+
+test("createSignedAssetDownloadUrl creates a signed raw download API URL", () => {
+  setCloudinaryTestEnv();
+
+  const signedUrl = createSignedAssetDownloadUrl({
+    cloudinaryPublicId: "DTF/user_1/order_1/file_1-my-print-ready-file.pdf",
+    format: "pdf",
+    expiresAt: 1776417996,
+  });
+
+  assert.match(
+    signedUrl,
+    /^https:\/\/api\.cloudinary\.com\/v1_1\/demo-cloud\/raw\/download\?timestamp=\d+&public_id=DTF%2Fuser_1%2Forder_1%2Ffile_1-my-print-ready-file\.pdf&format=pdf&type=upload&expires_at=1776417996&signature=[a-f0-9]+&api_key=key$/,
   );
 });

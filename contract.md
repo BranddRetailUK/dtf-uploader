@@ -31,12 +31,12 @@
   - the server verifies the asset is a trusted `raw` upload URL
   - the stored URL/bytes come from verified Cloudinary metadata, not the browser payload
 - Only trusted Cloudinary HTTPS raw-upload URLs are exposed back to profile/admin responses.
-- Customer/admin file opening is served through an authenticated app route that fetches the verified Cloudinary raw asset server-side and streams it back inline.
+- Customer/admin file opening is served through an authenticated app route that generates a time-limited signed Cloudinary raw download URL server-side, fetches that URL, and streams it back inline.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
   - each artwork card has a quantity stepper with arrow buttons; manual number entry is not allowed
   - a template generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
-  - layout-generated templates use a clean date-based filename instead of an ISO timestamp name
+  - layout-generated templates use a clean `Template <date>.pdf` filename instead of an ISO timestamp name
   - after order creation, the UI shows an upload modal while background uploads are running
   - the success state is shown only after the real upload completes
   - the success tick remains visible briefly before the order view refreshes

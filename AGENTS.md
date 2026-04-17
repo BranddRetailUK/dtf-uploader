@@ -57,7 +57,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   After the order exists, the UI starts the upload modal and background-upload flow.
   Each file gets a signed Cloudinary upload config from the server and uploads directly to Cloudinary under `DTF/{userId}/{orderId}`.
   Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted by checking the expected Cloudinary public ID and trusted raw-upload URL; browser-supplied file URLs are never trusted.
-  Profile/admin file opening goes through an authenticated app route that fetches the verified Cloudinary raw asset server-side and streams it back inline, so the browser no longer lands on a failing Cloudinary delivery URL.
+  Profile/admin file opening goes through an authenticated app route that generates a time-limited signed Cloudinary raw download URL server-side, fetches it, and streams it back inline, so the browser no longer lands on a failing Cloudinary delivery URL.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout V2:
   Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
@@ -66,7 +66,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
   Duplicate placement continues to the right on the source row, then restarts from the left edge on later rows so open space left of the parent can still be used lower in the canvas.
   Size fields now accept `0mm` while typing so values like `100mm` can be entered directly without snapping up to `40mm`.
-  `Add to order` renders the current layout to a one-page PDF named with a clean date label, shows template-specific loading/success modal copy, and redirects to `/` where the template is inserted into the normal upload queue.
+  `Add to order` renders the current layout to a one-page PDF named with a clean `Template <date>.pdf` label, shows template-specific loading/success modal copy, and redirects to `/` where the template is inserted into the normal upload queue.
   The preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:

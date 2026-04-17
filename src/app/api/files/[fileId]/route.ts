@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { isTrustedCloudinaryAssetUrl } from "@/lib/cloudinary";
+import {
+  createSignedAssetDownloadUrl,
+  isTrustedCloudinaryAssetUrl,
+} from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import {
   buildTemplateFilename,
@@ -15,6 +18,12 @@ function buildInlineContentDisposition(filename: string) {
   return `inline; filename="${fallbackFilename}"; filename*=UTF-8''${encodeURIComponent(
     filename,
   )}`;
+}
+
+function getFileFormat(filename: string) {
+  const match = filename.toLowerCase().match(/\.([a-z0-9]{1,12})$/);
+
+  return match?.[1] ?? "pdf";
 }
 
 export async function GET(
@@ -38,6 +47,7 @@ export async function GET(
       uploadStatus: true,
       originalName: true,
       mimeType: true,
+      cloudinaryPublicId: true,
       cloudinaryUrl: true,
       createdAt: true,
       order: {
@@ -58,16 +68,16 @@ export async function GET(
 
   if (
     file.uploadStatus !== "UPLOADED" ||
+    !file.cloudinaryPublicId ||
     !isTrustedCloudinaryAssetUrl(file.cloudinaryUrl)
   ) {
     return NextResponse.json({ error: "File is not available." }, { status: 409 });
   }
 
-  const assetUrl = file.cloudinaryUrl;
-
-  if (!assetUrl) {
-    return NextResponse.json({ error: "File is not available." }, { status: 409 });
-  }
+  const assetUrl = createSignedAssetDownloadUrl({
+    cloudinaryPublicId: file.cloudinaryPublicId,
+    format: getFileFormat(file.originalName),
+  });
 
   const assetResponse = await fetch(assetUrl, {
     cache: "no-store",

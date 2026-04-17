@@ -154,6 +154,24 @@ export function createSignedAssetDeliveryUrl(input: {
   });
 }
 
+export function createSignedAssetDownloadUrl(input: {
+  cloudinaryPublicId: string;
+  format: string;
+  expiresAt?: number;
+}) {
+  configureCloudinary();
+
+  return cloudinary.utils.private_download_url(
+    input.cloudinaryPublicId,
+    input.format,
+    {
+      resource_type: "raw",
+      type: "upload",
+      expires_at: input.expiresAt ?? Math.floor(Date.now() / 1000) + 5 * 60,
+    },
+  );
+}
+
 export async function verifyUploadedAsset(input: {
   userId: string;
   orderId: string;

@@ -10,6 +10,7 @@ import {
 test("isGeneratedTemplateFileName accepts both legacy and clean template names", () => {
   assert.equal(isGeneratedTemplateFileName("lami-template-2026-04-17T12-00-00.pdf"), true);
   assert.equal(isGeneratedTemplateFileName("Lami Template 17 Apr 2026.pdf"), true);
+  assert.equal(isGeneratedTemplateFileName("Template 17 Apr 2026.pdf"), true);
   assert.equal(isGeneratedTemplateFileName("customer-artwork.pdf"), false);
 });
 

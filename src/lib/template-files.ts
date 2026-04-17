@@ -3,7 +3,8 @@ export function isGeneratedTemplateFileName(originalName: string) {
 
   return (
     normalizedName.startsWith("lami-template") ||
-    normalizedName.startsWith("lami template")
+    normalizedName.startsWith("lami template") ||
+    normalizedName.startsWith("template ")
   );
 }
 
