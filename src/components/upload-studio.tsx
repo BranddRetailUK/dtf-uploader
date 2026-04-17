@@ -12,6 +12,11 @@ import {
 } from "react-icons/fi";
 
 import { ActionStatusModal } from "@/components/action-status-modal";
+import {
+  clearUploadDraft,
+  loadUploadDraft,
+  saveUploadDraft,
+} from "@/lib/browser-drafts";
 import { formatCurrencyFromPence, formatFileSize } from "@/lib/format";
 import {
   DEFAULT_ORDER_FILE_QUANTITY,
@@ -88,7 +93,7 @@ function mapFilesToLocalUploads(nextFiles: File[]) {
   }));
 }
 
-export function UploadStudio() {
+export function UploadStudio({ userId }: { userId: string }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [initialUploadState] = useState(() => {
@@ -120,6 +125,7 @@ export function UploadStudio() {
   const [modalPhase, setModalPhase] = useState<"idle" | "uploading" | "success">(
     "idle",
   );
+  const [isDraftHydrated, setIsDraftHydrated] = useState(false);
 
   const fileRef = useRef<LocalUpload[]>([]);
   const successTimerRef = useRef<number | null>(null);
@@ -128,6 +134,71 @@ export function UploadStudio() {
   useEffect(() => {
     fileRef.current = files;
   }, [files]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateUploadDraft() {
+      const savedDraft = await loadUploadDraft(userId);
+
+      if (cancelled) {
+        return;
+      }
+
+      if (!savedDraft || savedDraft.files.length === 0) {
+        setIsDraftHydrated(true);
+        return;
+      }
+
+      const restoredFiles = savedDraft.files.map((file) => ({
+        clientId: file.clientId,
+        file: file.file,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        quantity: file.quantity,
+        previewUrl: URL.createObjectURL(file.file),
+      }));
+
+      setFiles((current) => [...restoredFiles, ...current]);
+      setSelectedId((current) =>
+        current ??
+        restoredFiles.find((file) => file.clientId === savedDraft.selectedId)?.clientId ??
+        restoredFiles[0]?.clientId ??
+        null,
+      );
+      setIsDraftHydrated(true);
+    }
+
+    void hydrateUploadDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!isDraftHydrated) {
+      return;
+    }
+
+    if (files.length === 0) {
+      void clearUploadDraft(userId);
+      return;
+    }
+
+    void saveUploadDraft(userId, {
+      selectedId,
+      files: files.map((file) => ({
+        clientId: file.clientId,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        quantity: file.quantity,
+        file: file.file,
+      })),
+    });
+  }, [files, isDraftHydrated, selectedId, userId]);
 
   useEffect(() => {
     return () => {
@@ -601,6 +672,7 @@ export function UploadStudio() {
       snapshot.forEach((file) => URL.revokeObjectURL(file.previewUrl));
       setFiles([]);
       setSelectedId(null);
+      void clearUploadDraft(userId);
       setFeedback({
         tone: "neutral",
         message: "Your order has been created. Your files are uploading now.",

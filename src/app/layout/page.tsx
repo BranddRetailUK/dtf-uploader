@@ -6,5 +6,5 @@ export default async function LayoutV2Page() {
   const user = await requireUser();
   const initialLayouts = await getLayoutsForUser(user.id);
 
-  return <LayoutV2Studio initialLayout={initialLayouts[0] ?? null} />;
+  return <LayoutV2Studio initialLayout={initialLayouts[0] ?? null} userId={user.id} />;
 }

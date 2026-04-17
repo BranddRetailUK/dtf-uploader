@@ -7,12 +7,12 @@ export function CustomerAuthScreen({
   initialMode: "signup" | "login";
 }) {
   return (
-    <section className="grid min-h-[calc(100vh-2rem)] grid-rows-[minmax(2.5rem,1fr)_auto_minmax(2.5rem,1fr)_auto_minmax(2.5rem,1fr)] items-center">
-      <div className="row-start-2 justify-self-center">
+    <section className="flex min-h-[calc(100vh-2rem)] flex-col items-center justify-center gap-10 py-10">
+      <div>
         <LamiLogo width={200} priority />
       </div>
 
-      <div className="row-start-4 w-full justify-self-center">
+      <div className="w-full">
         <AuthForm mode={initialMode} />
       </div>
     </section>

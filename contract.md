@@ -35,6 +35,7 @@
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
   - each artwork card has a quantity stepper with arrow buttons; manual number entry is not allowed
+  - unsent upload drafts persist per user in the browser, including files, quantities, and selected preview state, so switching routes does not clear the current upload list
   - a template generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
   - layout-generated templates use a clean `Template <date>.pdf` filename instead of an ISO timestamp name
   - after order creation, the UI shows an upload modal while background uploads are running
@@ -45,6 +46,7 @@
   - authenticated users land directly in the layout canvas without a visible create-layout step
   - layout background mode persists to PostgreSQL, with `LIGHT` as the default mode
   - the background toggle offers `LIGHT`, `GREY`, and `DARK`, where `GREY` renders the printable area as `50%` black
+  - unsaved layout drafts persist per user in the browser, including artwork files, positions, sizes, copy counts, selected item, and background mode, so switching routes does not clear the current canvas
   - artwork can be added directly onto the preview by drag/drop or file picker
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
   - each parent artwork row in the left-hand list exposes `W` and `H` millimetre steppers with a directly editable number field between the arrows
@@ -181,6 +183,7 @@
   - the preview window accepts drag/drop file uploads
   - left/right preview arrows appear when multiple files are loaded
   - right-column multi-file artwork selection box
+  - unsent upload drafts survive route changes for the signed-in user
   - a layout-generated PDF template can appear here as a standard upload file
   - each artwork card includes a quantity stepper with left/right arrows
   - price summary below the upload box
@@ -235,6 +238,7 @@
 - `Duplicate` adds another bounded-grid copy for the selected artwork group, respecting the `10mm` gap and preview bounds, continuing right on the source row and restarting from the left edge on later rows.
 - Local artwork list groups duplicates beneath their original artwork and only exposes size/copy controls on the parent row.
 - `Add to order` creates a PDF template from the current canvas, gives it a clean date-based filename, shows template-specific loading/success modal text, and routes to `/` with that PDF added to the upload list.
+- Unsaved layout drafts survive route changes for the signed-in user.
 
 ## Endpoint Contract
 

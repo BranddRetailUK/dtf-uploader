@@ -6,7 +6,7 @@ export default async function HomePage() {
   const user = await getCurrentUser();
 
   if (user) {
-    return <UploadStudio />;
+    return <UploadStudio userId={user.id} />;
   }
 
   return <CustomerAuthScreen initialMode="signup" />;

@@ -261,12 +261,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             Back to customer sign in
           </Link>
         </div>
-      ) : (
-        <p className="mt-6 text-center text-sm leading-6 text-[#666666]">
-          Upload your artwork files, review previous orders, and keep each job tied to
-          your account.
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

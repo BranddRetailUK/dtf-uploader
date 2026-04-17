@@ -15,6 +15,11 @@ import {
 } from "react-icons/fi";
 
 import { ActionStatusModal } from "@/components/action-status-modal";
+import {
+  clearLayoutDraft,
+  loadLayoutDraft,
+  saveLayoutDraft,
+} from "@/lib/browser-drafts";
 import type { LayoutBackgroundMode, LayoutSummary } from "@/lib/domain";
 import { formatFileSize } from "@/lib/format";
 import {
@@ -37,6 +42,7 @@ type CanvasArtwork = {
   groupId: string;
   name: string;
   bytes: number;
+  sourceFile: File;
   previewUrl: string;
   widthPx: number;
   heightPx: number;
@@ -228,8 +234,10 @@ function buildArtworkGroupCopies(input: {
 
 export function LayoutV2Studio({
   initialLayout,
+  userId,
 }: {
   initialLayout: LayoutSummary | null;
+  userId: string;
 }) {
   const router = useRouter();
   const [layout, setLayout] = useState<LayoutSummary | null>(initialLayout);
@@ -250,6 +258,7 @@ export function LayoutV2Studio({
   >("idle");
   const [canvasSizePx, setCanvasSizePx] = useState({ width: 0, height: 0 });
   const [interaction, setInteraction] = useState<CanvasInteraction | null>(null);
+  const [isDraftHydrated, setIsDraftHydrated] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const printableAreaRef = useRef<HTMLDivElement | null>(null);
@@ -275,6 +284,119 @@ export function LayoutV2Studio({
       }
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateLayoutDraft() {
+      const savedDraft = await loadLayoutDraft(userId);
+
+      if (cancelled) {
+        return;
+      }
+
+      if (!savedDraft || savedDraft.artworks.length === 0) {
+        setIsDraftHydrated(true);
+        return;
+      }
+
+      const assetsById = new Map(
+        savedDraft.assets.map((asset) => [
+          asset.assetId,
+          {
+            ...asset,
+            previewUrl: URL.createObjectURL(asset.file),
+          },
+        ]),
+      );
+      const restoredArtworks = savedDraft.artworks.flatMap((artwork) => {
+        const asset = assetsById.get(artwork.groupId);
+
+        if (!asset) {
+          return [];
+        }
+
+        return [
+          {
+            id: artwork.id,
+            groupId: artwork.groupId,
+            name: asset.name,
+            bytes: asset.bytes,
+            sourceFile: asset.file,
+            previewUrl: asset.previewUrl,
+            widthPx: asset.widthPx,
+            heightPx: asset.heightPx,
+            xMm: artwork.xMm,
+            yMm: artwork.yMm,
+            widthMm: artwork.widthMm,
+            heightMm: artwork.heightMm,
+            zIndex: artwork.zIndex,
+          },
+        ];
+      });
+
+      setArtworks((current) => {
+        revokeUnusedPreviewUrls(current, restoredArtworks);
+        return restoredArtworks;
+      });
+      setBackgroundMode(savedDraft.backgroundMode);
+      setSelectedArtworkId(
+        restoredArtworks.some((artwork) => artwork.id === savedDraft.selectedArtworkId)
+          ? savedDraft.selectedArtworkId
+          : restoredArtworks.at(-1)?.id ?? null,
+      );
+      setIsDraftHydrated(true);
+    }
+
+    void hydrateLayoutDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!isDraftHydrated) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (artworks.length === 0) {
+        void clearLayoutDraft(userId);
+        return;
+      }
+
+      const parentArtworks = artworks.filter(
+        (artwork) => artwork.id === artwork.groupId,
+      );
+
+      void saveLayoutDraft(userId, {
+        selectedArtworkId,
+        backgroundMode,
+        assets: parentArtworks.map((artwork) => ({
+          assetId: artwork.groupId,
+          name: artwork.name,
+          bytes: artwork.bytes,
+          widthPx: artwork.widthPx,
+          heightPx: artwork.heightPx,
+          file: artwork.sourceFile,
+        })),
+        artworks: artworks.map((artwork) => ({
+          id: artwork.id,
+          groupId: artwork.groupId,
+          xMm: artwork.xMm,
+          yMm: artwork.yMm,
+          widthMm: artwork.widthMm,
+          heightMm: artwork.heightMm,
+          zIndex: artwork.zIndex,
+        })),
+      });
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [artworks, backgroundMode, isDraftHydrated, selectedArtworkId, userId]);
 
   useEffect(() => {
     const node = printableAreaRef.current;
@@ -304,7 +426,7 @@ export function LayoutV2Studio({
   }, []);
 
   useEffect(() => {
-    if (layout || autoCreateAttemptedRef.current) {
+    if (!isDraftHydrated || layout || autoCreateAttemptedRef.current) {
       return;
     }
 
@@ -345,7 +467,7 @@ export function LayoutV2Studio({
     return () => {
       cancelled = true;
     };
-  }, [backgroundMode, layout]);
+  }, [backgroundMode, isDraftHydrated, layout]);
 
   useEffect(() => {
     if (!interaction || canvasSizePx.width <= 0 || canvasSizePx.height <= 0) {
@@ -528,6 +650,7 @@ export function LayoutV2Studio({
             groupId: artworkId,
             name: loadedFile.file.name,
             bytes: loadedFile.file.size,
+            sourceFile: loadedFile.file,
             previewUrl: loadedFile.previewUrl,
             widthPx: loadedFile.widthPx,
             heightPx: loadedFile.heightPx,
