@@ -11,8 +11,9 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/page.tsx`
   Primary upload page.
   Logged-out users see a centered signup/login card with the Lami logo above it.
-  Logged-in users see the PDF uploader with a left-column preview window, right-column file box, price block, send button, and timed optimistic upload modal.
+  Logged-in users see the PDF uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
+  The preview window uses a custom rendered PDF preview with no browser toolbar, and the empty preview state accepts drag/drop uploads directly.
 - `src/app/signup/page.tsx`
   Customer auth screen with signup selected by default.
 - `src/app/login/page.tsx`
@@ -37,16 +38,17 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Logout deletes the persisted session and clears the cookie.
 - Upload:
   The client validates/selects PDFs, previews the selected file locally, and calculates price client-side using shared pricing constants.
+  The preview panel renders PDFs without the browser PDF toolbar and also acts as a drag/drop target when empty or populated.
   On upload, the app first creates an order plus `order_files` records in PostgreSQL.
-  After the order exists, the UI starts the fixed 4-second optimistic modal and background-upload flow.
-  Each file gets a signed Cloudinary upload config from the server, uploads directly to Cloudinary under `DTF/{userId}/{orderId}`, and is constrained to PDF format at the Cloudinary API layer.
-  Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted; browser-supplied file URLs are never trusted.
+  After the order exists, the UI starts the upload modal and background-upload flow.
+  Each file gets a signed Cloudinary upload config from the server and uploads directly to Cloudinary under `DTF/{userId}/{orderId}`.
+  Successful upload finalization is verified server-side against Cloudinary before URL/bytes are persisted by checking the uploaded asset URL plus the file's PDF signature; browser-supplied file URLs are never trusted.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
   The signed-in header uses a separate logo asset from the public auth screen.
-  In the signed-in header, navigation pills sit directly to the right of the logo and no account/company pill is shown.
+  In the signed-in header, upload/layout/admin navigation sits directly to the right of the logo, and the profile link is a right-aligned icon button.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 layout scaffold:
@@ -93,8 +95,8 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 - Prices are stored in pence, never floats.
 - VAT is fixed at 20%.
 - Only PDFs are accepted in V1 uploads.
-- Direct Cloudinary uploads are signed with `allowed_formats=pdf`, and non-verified or non-PDF assets are rejected during finalize.
-- The optimistic upload modal is intentionally decoupled from real upload completion.
+- Direct Cloudinary uploads are verified as PDFs during finalize by inspecting the uploaded asset signature, so Illustrator-tagged PDFs are allowed if the underlying file is a real PDF.
+- The upload modal follows real upload completion instead of a fixed timer.
 - The public home page has no header; the header appears only after authentication.
 - Shared business rules live in `src/lib/*`.
 - Route handlers return JSON and perform server-side validation with Zod.

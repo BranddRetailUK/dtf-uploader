@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   FiCheck,
-  FiClock,
   FiFileText,
   FiLoader,
   FiTrash2,
@@ -12,7 +11,8 @@ import {
 } from "react-icons/fi";
 
 import { formatCurrencyFromPence, formatFileSize } from "@/lib/format";
-import { calculatePriceBreakdown, UPLOAD_MODAL_DURATION_MS } from "@/lib/pricing";
+import { calculatePriceBreakdown } from "@/lib/pricing";
+import { PdfPreview } from "@/components/pdf-preview";
 
 type LocalPdf = {
   clientId: string;
@@ -44,7 +44,6 @@ type UploadSignResponse = {
   signature: string;
   folder: string;
   publicId: string;
-  allowedFormats: string;
   tags: string;
   resourceType: string;
   uploadUrl: string;
@@ -75,7 +74,8 @@ export function UploadStudio() {
   );
 
   const fileRef = useRef<LocalPdf[]>([]);
-  const timerRef = useRef<number[]>([]);
+  const successTimerRef = useRef<number | null>(null);
+  const dragDepthRef = useRef(0);
 
   useEffect(() => {
     fileRef.current = files;
@@ -84,7 +84,10 @@ export function UploadStudio() {
   useEffect(() => {
     return () => {
       fileRef.current.forEach((file) => URL.revokeObjectURL(file.previewUrl));
-      timerRef.current.forEach((timer) => window.clearTimeout(timer));
+
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current);
+      }
     };
   }, []);
 
@@ -92,22 +95,61 @@ export function UploadStudio() {
     files.find((file) => file.clientId === selectedId) ?? files[0] ?? null;
   const pricing = calculatePriceBreakdown(files.length);
 
-  function setTimedModal() {
-    timerRef.current.forEach((timer) => window.clearTimeout(timer));
-    timerRef.current = [];
+  function handleDragEnter(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+
+    if (dragDepthRef.current === 0) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+    consumeFiles(Array.from(event.dataTransfer.files));
+  }
+
+  function showUploadingModal() {
+    if (successTimerRef.current) {
+      window.clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+
     setModalPhase("uploading");
+  }
 
-    timerRef.current.push(
-      window.setTimeout(() => {
-        setModalPhase("success");
-      }, Math.round(UPLOAD_MODAL_DURATION_MS * 0.65)),
-    );
+  function showSuccessModal() {
+    if (successTimerRef.current) {
+      window.clearTimeout(successTimerRef.current);
+    }
 
-    timerRef.current.push(
-      window.setTimeout(() => {
-        setModalPhase("idle");
-      }, UPLOAD_MODAL_DURATION_MS),
-    );
+    setModalPhase("success");
+    successTimerRef.current = window.setTimeout(() => {
+      setModalPhase("idle");
+      successTimerRef.current = null;
+    }, 900);
+  }
+
+  function hideModal() {
+    if (successTimerRef.current) {
+      window.clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+
+    setModalPhase("idle");
   }
 
   function consumeFiles(nextFiles: File[]) {
@@ -232,7 +274,6 @@ export function UploadStudio() {
     formData.append("signature", signPayload.signature);
     formData.append("folder", signPayload.folder);
     formData.append("public_id", signPayload.publicId);
-    formData.append("allowed_formats", signPayload.allowedFormats);
     formData.append("tags", signPayload.tags);
 
     try {
@@ -338,10 +379,17 @@ export function UploadStudio() {
             : "Your files have been uploaded and your order is now available in your profile.",
       });
 
+      if (failures > 0) {
+        hideModal();
+      } else {
+        showSuccessModal();
+      }
+
       startTransition(() => {
         router.refresh();
       });
     } catch (error) {
+      hideModal();
       setFeedback({
         tone: "error",
         message: `We couldn't finish the background upload: ${getErrorMessage(error)}`,
@@ -363,17 +411,17 @@ export function UploadStudio() {
     try {
       const orderResponse = await createOrder(snapshot);
 
-      setTimedModal();
+      showUploadingModal();
       snapshot.forEach((file) => URL.revokeObjectURL(file.previewUrl));
       setFiles([]);
       setSelectedId(null);
       setFeedback({
         tone: "neutral",
-        message:
-          "Your order has been created. The upload animation runs on a 4 second timer while your files continue uploading.",
+        message: "Your order has been created. Your files are uploading now.",
       });
       void runBackgroundUpload(snapshot, orderResponse);
     } catch (error) {
+      hideModal();
       setFeedback({
         tone: "error",
         message: getErrorMessage(error),
@@ -405,17 +453,44 @@ export function UploadStudio() {
 
             <div className="mt-5">
               {selectedFile ? (
-                <div className="preview-shell">
-                  <iframe
+                <div
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`transition ${isDragging ? "scale-[0.998]" : ""}`}
+                >
+                  <PdfPreview
                     src={selectedFile.previewUrl}
                     title={selectedFile.name}
-                    className="h-[700px] w-full rounded-[1.25rem] border-0 bg-white"
                   />
                 </div>
               ) : (
-                <div className="flex h-[700px] items-center justify-center rounded-[1.7rem] border border-dashed border-[#1c1c1c]/10 bg-[#fafafa] px-8 text-center text-sm leading-7 text-[#666666]">
-                  Add one or more PDF files on the right and the selected file will
-                  appear here.
+                <div
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`preview-shell flex h-[700px] items-center justify-center border-dashed px-8 text-center transition ${
+                    isDragging
+                      ? "border-[#7e00ff] bg-[#f7f1ff]"
+                      : "border-[#1c1c1c]/10 bg-[#fafafa]"
+                  }`}
+                >
+                  <div className="flex max-w-sm flex-col items-center gap-4">
+                    <div className="flex size-16 items-center justify-center rounded-[1.5rem] bg-[#f4ebff] text-[#7e00ff]">
+                      <FiUploadCloud className="size-7" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xl font-semibold text-[#1c1c1c]">
+                        Drag or upload artwork
+                      </p>
+                      <p className="text-sm leading-7 text-[#666666]">
+                        Drop PDF files here or use the upload area to choose files
+                        from your device.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -423,16 +498,10 @@ export function UploadStudio() {
 
           <div className="space-y-4">
             <div
-              onDragOver={(event) => {
-                event.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setIsDragging(false);
-                consumeFiles(Array.from(event.dataTransfer.files));
-              }}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               className={`surface-panel border-dashed transition ${
                 isDragging ? "border-[#7e00ff] bg-[#f7f1ff]" : ""
               }`}
@@ -510,11 +579,11 @@ export function UploadStudio() {
               <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
                 {pricing.fileCount === 0
                   ? "£0"
-                  : `${formatCurrencyFromPence(pricing.unitPricePence)} + VAT per file`}
+                  : formatCurrencyFromPence(pricing.totalPence)}
               </p>
               <p className="mt-3 text-sm leading-7 text-[#666666]">
                 {pricing.fileCount > 0
-                  ? `${pricing.fileCount} file${pricing.fileCount === 1 ? "" : "s"} selected.`
+                  ? `Total including VAT for ${pricing.fileCount} file${pricing.fileCount === 1 ? "" : "s"}.`
                   : "Add files to see your order total."}
               </p>
 
@@ -586,13 +655,9 @@ export function UploadStudio() {
             </h2>
             <p className="mt-3 text-sm leading-7 text-[#666666]">
               {modalPhase === "uploading"
-                ? "Please wait while we start your upload."
+                ? "Please wait while your files upload."
                 : "Your order has been sent. Any later issue will appear in your profile."}
             </p>
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs uppercase tracking-[0.24em] text-[#7e00ff]">
-              <FiClock className="size-4" />
-              4 second upload flow
-            </div>
           </div>
         </div>
       ) : null}

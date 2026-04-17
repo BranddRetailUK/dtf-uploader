@@ -65,6 +65,34 @@ export function isTrustedCloudinaryAssetUrl(url: string | null | undefined) {
   }
 }
 
+export function hasPdfSignature(bytes: Uint8Array) {
+  const pdfHeader = [0x25, 0x50, 0x44, 0x46, 0x2d];
+
+  return pdfHeader.every((byte, index) => bytes[index] === byte);
+}
+
+async function assetHasPdfSignature(url: string) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Range: "bytes=0-4",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+
+    return hasPdfSignature(bytes);
+  } catch {
+    return false;
+  }
+}
+
 async function destroyRawAsset(publicId: string) {
   try {
     configureCloudinary();
@@ -91,11 +119,9 @@ export function createSignedUploadPayload(input: {
   const folder = buildCloudinaryFolder(input.userId, input.orderId);
   const publicId = buildCloudinaryAssetName(input.orderFileId, input.originalName);
   const tags = ["dtf", "pdf", input.orderId].join(",");
-  const allowedFormats = "pdf";
 
   const signature = cloudinary.utils.api_sign_request(
     {
-      allowed_formats: allowedFormats,
       folder,
       public_id: publicId,
       tags,
@@ -111,7 +137,6 @@ export function createSignedUploadPayload(input: {
     signature,
     folder,
     publicId,
-    allowedFormats,
     tags,
     resourceType: "raw",
     uploadUrl: `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/raw/upload`,
@@ -158,7 +183,7 @@ export async function verifyUploadedPdfAsset(input: {
       };
     }
 
-    if (String(resource.format ?? "").toLowerCase() !== "pdf") {
+    if (!(await assetHasPdfSignature(resource.secure_url!))) {
       await destroyRawAsset(expectedPublicId);
 
       return {

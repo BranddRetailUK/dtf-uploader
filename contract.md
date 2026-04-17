@@ -23,17 +23,17 @@
 - Order VAT = `round(subtotal * 0.20)`.
 - Order total = `subtotal + vat`.
 - Only PDF files are accepted in V1 upload creation.
-- Direct Cloudinary uploads are signed with `allowed_formats=pdf`.
 - A successful upload is not accepted from browser metadata alone:
   - the browser reports only the Cloudinary `public_id`
   - the server verifies the asset exists in Cloudinary
-  - the server verifies the asset is a `raw` PDF
+  - the server verifies the asset is a trusted `raw` upload URL
+  - the server verifies the uploaded file bytes start with a PDF signature
   - the stored URL/bytes come from verified Cloudinary metadata, not the browser payload
 - Only trusted Cloudinary HTTPS raw-upload URLs are exposed back to profile/admin responses.
 - Public auth and upload mutation endpoints are rate-limited.
-- Upload UX is optimistic:
-  - after order creation, the UI shows a fixed 4-second animation
-  - the animation is not tied to the real Cloudinary upload duration
+- Upload UX:
+  - after order creation, the UI shows an upload modal while background uploads are running
+  - the success state is shown only after the real upload completes
   - real upload failures are persisted and surfaced later in profile/admin
 - Order status derivation during upload finalization:
   - any file `FAILED` => order `FAILED`
@@ -107,11 +107,12 @@
   - Lami logo above the auth card
 - Logged in:
   - two-column upload layout
-  - left-column selected PDF preview window
+  - left-column selected PDF preview window with no browser PDF toolbar
+  - the preview window also accepts drag/drop PDF uploads
   - right-column multi-file PDF selection box
   - price summary below the upload box
   - send button below the price summary
-  - fixed 4-second upload modal
+  - upload modal tied to real upload completion
 
 ### `/signup`
 
@@ -241,7 +242,6 @@
   - `signature`
   - `folder`
   - `publicId`
-  - `allowedFormats`
   - `tags`
   - `resourceType`
   - `uploadUrl`
@@ -260,7 +260,7 @@
 - Logic:
   - apply fixed-window rate limits
   - verify successful uploads against Cloudinary using the expected per-file public ID
-  - reject assets that are not verified raw PDFs
+  - reject assets that are not verified raw uploads with a valid PDF file signature
   - update the file row from verified Cloudinary metadata
   - recalculate the parent order status from all file states
 - Response:
