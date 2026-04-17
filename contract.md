@@ -43,8 +43,10 @@
   - authenticated users land directly in the layout canvas without a visible create-layout step
   - layout background mode persists to PostgreSQL
   - artwork can be added directly onto the preview by drag/drop or file picker
-  - each artwork can be selected, dragged, resized from a handle, arranged, and duplicated in a bounded grid
+  - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
+  - each artwork row in the left-hand list exposes `W` and `H` millimetre inputs that scale the artwork while the preview stays visually clean
   - new artwork is placed top-left first, then across the row, then below when horizontal space runs out
+  - duplicated artwork uses a `10mm` gap
   - the V2 artwork pieces are still local-only until layout asset uploads are implemented
 - Order status derivation during upload finalization:
   - any file `FAILED` => order `FAILED`
@@ -212,9 +214,10 @@
 - Fixed `560mm x 1000mm` template preview area.
 - Light/dark background toggle persisted to the selected layout.
 - Direct artwork intake on the preview via drag/drop or file picker.
-- Selected artwork shows a bounding box and resize handle.
+- Selected artwork sizing is edited from `W` and `H` controls in the left-hand artwork list.
+- The preview does not show file-title badges, resize handles, or bounding boxes on artwork.
 - `Arrange` repacks current artwork inside the printable bounds.
-- `Duplicate` repeats the selected artwork in a bounded grid until the next copy would exceed the preview bounds.
+- `Duplicate` repeats the selected artwork in a bounded grid with `10mm` spacing until the next copy would exceed the preview bounds.
 - Local artwork list mirrors the pieces currently loaded into the preview.
 
 ## Endpoint Contract

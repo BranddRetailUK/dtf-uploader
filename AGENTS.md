@@ -29,8 +29,9 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/layout/page.tsx`
   V2 saved-layout workspace for artwork layout on a `560mm x 1000mm` template canvas.
   The page auto-provisions a saved layout shell when needed, persists background-mode changes through authenticated APIs, and removes developer-facing placeholder copy.
-  The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, resize them from a bottom-right handle, arrange all pieces, and duplicate the selected piece into a bounded grid.
-  New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds.
+  The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, arrange all pieces, and duplicate the selected piece into a bounded grid.
+  Artwork sizing is now controlled from `W` and `H` millimetre inputs in the left-hand artwork list instead of preview-side resize chrome.
+  New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, and duplicate spacing uses a `10mm` gap.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
   JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, admin status updates, and V2 layout create/list/update routes.
@@ -55,7 +56,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - Layout V2:
   Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
   Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit.
-  The preview canvas accepts direct artwork intake, supports selection, drag, resize, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
+  The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
+  Piece sizing is adjusted from width/height controls in the artwork list, and the preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
@@ -65,7 +67,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 canvas:
-  `/layout` now provides the interactive template area, background toggle, direct artwork intake, and local arrange/duplicate/resize controls.
+  `/layout` now provides the interactive template area, background toggle, direct artwork intake, and local arrange/duplicate controls with left-list width/height scaling.
 
 ## Data Model Summary
 

@@ -53,17 +53,6 @@ type CanvasInteraction =
       startClientY: number;
       originXMm: number;
       originYMm: number;
-    }
-  | {
-      type: "resize";
-      itemId: string;
-      startClientX: number;
-      startClientY: number;
-      originWidthMm: number;
-      originHeightMm: number;
-      originXMm: number;
-      originYMm: number;
-      aspectRatio: number;
     };
 
 function isImageFile(file: File) {
@@ -240,45 +229,10 @@ export function LayoutV2Studio({
             ((event.clientY - activeInteraction.startClientY) / canvasSizePx.height) *
             LAYOUT_CANVAS_HEIGHT_MM;
 
-          if (activeInteraction.type === "drag") {
-            return clampLayoutItemToCanvas({
-              ...item,
-              xMm: activeInteraction.originXMm + deltaXMM,
-              yMm: activeInteraction.originYMm + deltaYMM,
-            });
-          }
-
-          const widthFromDelta = activeInteraction.originWidthMm + deltaXMM;
-          const heightDrivenWidth =
-            (activeInteraction.originHeightMm + deltaYMM) * activeInteraction.aspectRatio;
-          const nextWidthMM = Math.max(
-            MIN_LAYOUT_ITEM_SIZE_MM,
-            Math.abs(widthFromDelta - activeInteraction.originWidthMm) >=
-              Math.abs(heightDrivenWidth - activeInteraction.originWidthMm)
-              ? widthFromDelta
-              : heightDrivenWidth,
-          );
-          const maxWidthFromBounds = LAYOUT_CANVAS_WIDTH_MM - activeInteraction.originXMm;
-          const maxHeightFromBounds = LAYOUT_CANVAS_HEIGHT_MM - activeInteraction.originYMm;
-          const boundedWidthMM = Math.min(nextWidthMM, maxWidthFromBounds);
-          const boundedHeightMM = boundedWidthMM / activeInteraction.aspectRatio;
-
-          if (boundedHeightMM > maxHeightFromBounds) {
-            const constrainedHeightMM = maxHeightFromBounds;
-            const constrainedWidthMM =
-              constrainedHeightMM * activeInteraction.aspectRatio;
-
-            return clampLayoutItemToCanvas({
-              ...item,
-              widthMm: constrainedWidthMM,
-              heightMm: constrainedHeightMM,
-            });
-          }
-
           return clampLayoutItemToCanvas({
             ...item,
-            widthMm: boundedWidthMM,
-            heightMm: boundedHeightMM,
+            xMm: activeInteraction.originXMm + deltaXMM,
+            yMm: activeInteraction.originYMm + deltaYMM,
           });
         }),
       );
@@ -464,26 +418,6 @@ export function LayoutV2Studio({
     });
   }
 
-  function startResize(
-    event: React.PointerEvent<HTMLButtonElement>,
-    artwork: CanvasArtwork,
-  ) {
-    event.preventDefault();
-    event.stopPropagation();
-    bringArtworkToFront(artwork.id);
-    setInteraction({
-      type: "resize",
-      itemId: artwork.id,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      originWidthMm: artwork.widthMm,
-      originHeightMm: artwork.heightMm,
-      originXMm: artwork.xMm,
-      originYMm: artwork.yMm,
-      aspectRatio: artwork.widthPx / artwork.heightPx,
-    });
-  }
-
   async function handleBackgroundMode(nextMode: LayoutBackgroundMode) {
     if (backgroundMode === nextMode) {
       return;
@@ -585,6 +519,39 @@ export function LayoutV2Studio({
     });
   }
 
+  function updateArtworkDimension(
+    artworkId: string,
+    dimension: "width" | "height",
+    rawValue: string,
+  ) {
+    const parsedValue = Number(rawValue);
+
+    if (!Number.isFinite(parsedValue)) {
+      return;
+    }
+
+    setArtworks((current) =>
+      current.map((artwork) => {
+        if (artwork.id !== artworkId) {
+          return artwork;
+        }
+
+        const safeDimension = Math.max(MIN_LAYOUT_ITEM_SIZE_MM, parsedValue);
+        const aspectRatio = artwork.widthPx / artwork.heightPx;
+        const nextWidthMm =
+          dimension === "width" ? safeDimension : safeDimension * aspectRatio;
+        const nextHeightMm =
+          dimension === "height" ? safeDimension : safeDimension / aspectRatio;
+
+        return clampLayoutItemToCanvas({
+          ...artwork,
+          widthMm: nextWidthMm,
+          heightMm: nextHeightMm,
+        });
+      }),
+    );
+  }
+
   return (
     <section className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
       <input
@@ -676,46 +643,85 @@ export function LayoutV2Studio({
               .map((artwork) => (
                 <div
                   key={artwork.id}
-                  className={`flex items-center justify-between gap-3 rounded-[1.5rem] border px-4 py-3 transition ${
+                  className={`rounded-[1.5rem] border px-4 py-3 transition ${
                     selectedArtworkId === artwork.id
                       ? "border-[#7e00ff]/35 bg-[#f7f1ff]"
                       : "border-[#1c1c1c]/8 bg-white"
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => bringArtworkToFront(artwork.id)}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                  >
-                    <div className="relative h-14 w-14 overflow-hidden rounded-[1rem] border border-[#1c1c1c]/8 bg-[#fafafa]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={artwork.previewUrl}
-                        alt={artwork.name}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#1c1c1c]">
-                        {artwork.name}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#666666]">
-                        {Math.round(artwork.widthMm)} × {Math.round(artwork.heightMm)} mm
-                      </p>
-                      <p className="text-xs uppercase tracking-[0.16em] text-[#666666]">
-                        {formatFileSize(artwork.bytes)}
-                      </p>
-                    </div>
-                  </button>
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => bringArtworkToFront(artwork.id)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <div className="relative h-14 w-14 overflow-hidden rounded-[1rem] border border-[#1c1c1c]/8 bg-[#fafafa]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={artwork.previewUrl}
+                          alt={artwork.name}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#1c1c1c]">
+                          {artwork.name}
+                        </p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#666666]">
+                          {formatFileSize(artwork.bytes)}
+                        </p>
+                      </div>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => removeArtwork(artwork.id)}
-                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                    aria-label={`Remove ${artwork.name}`}
-                  >
-                    <FiTrash2 className="size-4" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => removeArtwork(artwork.id)}
+                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                      aria-label={`Remove ${artwork.name}`}
+                    >
+                      <FiTrash2 className="size-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-[#1c1c1c]/8 bg-[#fafafa] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#666666]">
+                      W
+                      <input
+                        type="number"
+                        min={MIN_LAYOUT_ITEM_SIZE_MM}
+                        step={1}
+                        value={Math.round(artwork.widthMm)}
+                        onChange={(event) =>
+                          updateArtworkDimension(
+                            artwork.id,
+                            "width",
+                            event.target.value,
+                          )
+                        }
+                        className="w-[4.2rem] border-none bg-transparent text-right text-sm font-semibold tracking-normal text-[#1c1c1c] outline-none"
+                      />
+                      <span className="text-[11px] tracking-[0.12em]">mm</span>
+                    </label>
+
+                    <label className="inline-flex items-center gap-2 rounded-full border border-[#1c1c1c]/8 bg-[#fafafa] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#666666]">
+                      H
+                      <input
+                        type="number"
+                        min={MIN_LAYOUT_ITEM_SIZE_MM}
+                        step={1}
+                        value={Math.round(artwork.heightMm)}
+                        onChange={(event) =>
+                          updateArtworkDimension(
+                            artwork.id,
+                            "height",
+                            event.target.value,
+                          )
+                        }
+                        className="w-[4.2rem] border-none bg-transparent text-right text-sm font-semibold tracking-normal text-[#1c1c1c] outline-none"
+                      />
+                      <span className="text-[11px] tracking-[0.12em]">mm</span>
+                    </label>
+                  </div>
                 </div>
               ))
           )}
@@ -790,8 +796,6 @@ export function LayoutV2Studio({
               ) : null}
 
               {pieces.map((artwork) => {
-                const isSelected = selectedArtworkId === artwork.id;
-
                 return (
                   <div
                     key={artwork.id}
@@ -800,9 +804,7 @@ export function LayoutV2Studio({
                       event.stopPropagation();
                       bringArtworkToFront(artwork.id);
                     }}
-                    className={`absolute touch-none overflow-visible rounded-[0.9rem] ${
-                      isSelected ? "cursor-grabbing" : "cursor-grab"
-                    }`}
+                    className="absolute touch-none cursor-grab"
                     style={{
                       left: `${(artwork.xMm / LAYOUT_CANVAS_WIDTH_MM) * 100}%`,
                       top: `${(artwork.yMm / LAYOUT_CANVAS_HEIGHT_MM) * 100}%`,
@@ -811,41 +813,13 @@ export function LayoutV2Studio({
                       zIndex: artwork.zIndex + 1,
                     }}
                   >
-                    <div
-                      className={`relative h-full w-full overflow-hidden rounded-[0.9rem] border bg-white/90 shadow-[0_10px_28px_rgba(28,28,28,0.12)] ${
-                        isSelected
-                          ? "border-[#7e00ff] ring-2 ring-[#7e00ff]/20"
-                          : "border-[#1c1c1c]/12"
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={artwork.previewUrl}
-                        alt={artwork.name}
-                        draggable={false}
-                        className="h-full w-full select-none object-contain"
-                      />
-                    </div>
-
-                    <span
-                      className={`pointer-events-none absolute -top-3 left-3 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[0_8px_24px_rgba(28,28,28,0.08)] ${
-                        isSelected
-                          ? "bg-[#7e00ff] text-white"
-                          : "bg-white/92 text-[#666666]"
-                      }`}
-                    >
-                      {artwork.name}
-                    </span>
-
-                    <button
-                      type="button"
-                      onPointerDown={(event) => startResize(event, artwork)}
-                      onClick={(event) => event.stopPropagation()}
-                      className="absolute -bottom-3 -right-3 inline-flex size-7 items-center justify-center rounded-full border-2 border-white bg-[#7e00ff] text-white shadow-[0_10px_24px_rgba(126,0,255,0.22)]"
-                      aria-label={`Resize ${artwork.name}`}
-                    >
-                      <span className="block h-2.5 w-2.5 rounded-[0.35rem] border border-white/85" />
-                    </button>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={artwork.previewUrl}
+                      alt={artwork.name}
+                      draggable={false}
+                      className="h-full w-full select-none object-contain"
+                    />
                   </div>
                 );
               })}

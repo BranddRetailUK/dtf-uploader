@@ -104,7 +104,7 @@ test("duplicateLayoutItemGrid fills copies within the preview bounds", () => {
   assert.equal(duplicates.length > 0, true);
   assert.deepEqual(duplicates[0], {
     id: "item_1-1",
-    xMm: 132,
+    xMm: 130,
     yMm: 0,
     widthMm: 120,
     heightMm: 120,

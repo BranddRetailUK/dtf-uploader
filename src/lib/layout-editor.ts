@@ -3,7 +3,7 @@ import {
   LAYOUT_CANVAS_WIDTH_MM,
 } from "@/lib/layout-config";
 
-export const LAYOUT_ITEM_GAP_MM = 12;
+export const LAYOUT_ITEM_GAP_MM = 10;
 export const LAYOUT_SCAN_STEP_MM = 8;
 export const MIN_LAYOUT_ITEM_SIZE_MM = 40;
 export const DEFAULT_LAYOUT_ITEM_MAX_WIDTH_MM = 170;
