@@ -4,7 +4,12 @@ import { FiExternalLink, FiUploadCloud } from "react-icons/fi";
 import { LogoutButton } from "@/components/logout-button";
 import { StatusBadge } from "@/components/status-badge";
 import { requireUser } from "@/lib/auth";
-import { formatCurrencyFromPence, formatDateTime, formatFileSize } from "@/lib/format";
+import {
+  formatCurrencyFromPence,
+  formatDateTime,
+  formatFileSize,
+  formatMonthYear,
+} from "@/lib/format";
 import type { OrderFileSummary } from "@/lib/domain";
 import { getOrdersForUser } from "@/lib/orders";
 import {
@@ -25,13 +30,25 @@ function getProfileFileTitle(file: OrderFileSummary) {
 export default async function ProfilePage() {
   const user = await requireUser();
   const orders = await getOrdersForUser(user.id);
+  const now = new Date();
+  const currentMonthSpendPence = orders.reduce((sum, order) => {
+    const createdAt = new Date(order.createdAt);
+
+    if (
+      createdAt.getFullYear() === now.getFullYear() &&
+      createdAt.getMonth() === now.getMonth()
+    ) {
+      return sum + order.totalPence;
+    }
+
+    return sum;
+  }, 0);
 
   if (orders.length === 0) {
     return (
       <section className="surface-panel">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="text-center sm:text-left">
-            <p className="eyebrow">Your uploads</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
               No uploads yet
             </h1>
@@ -60,17 +77,24 @@ export default async function ProfilePage() {
       <div className="surface-panel">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="eyebrow">Your uploads</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
+            <h1 className="text-4xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
               Order history
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[#666666]">
-              Review each order, see every file inside it, and check whether an
-              upload completed successfully.
-            </p>
           </div>
 
-          <LogoutButton />
+          <div className="flex flex-col items-start gap-4 sm:items-end">
+            <div className="rounded-[1.8rem] border border-[#7e00ff]/14 bg-[#faf8ff] px-5 py-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#7e00ff]">
+                {formatMonthYear(now)}
+              </p>
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
+                {formatCurrencyFromPence(currentMonthSpendPence)}
+              </p>
+              <p className="mt-1 text-sm text-[#666666]">Total spend this month</p>
+            </div>
+
+            <LogoutButton />
+          </div>
         </div>
       </div>
 

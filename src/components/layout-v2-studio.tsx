@@ -1034,7 +1034,11 @@ export function LayoutV2Studio({
           </button>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6">
+          <p className="eyebrow">Background</p>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => void handleBackgroundMode("LIGHT")}

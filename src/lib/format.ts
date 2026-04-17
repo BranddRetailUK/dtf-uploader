@@ -12,6 +12,13 @@ export function formatDateTime(value: string | Date) {
   }).format(new Date(value));
 }
 
+export function formatMonthYear(value: string | Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export function formatFileSize(bytes: number) {
   if (bytes < 1024) {
     return `${bytes} B`;

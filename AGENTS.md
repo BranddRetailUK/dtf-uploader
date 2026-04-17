@@ -13,6 +13,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Logged-out users see a vertically centered signup/login card with the Lami logo above it.
   Logged-in users see the artwork uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
   Each uploaded artwork card now includes a styled arrow-stepper quantity control; the billed upload count and price summary use the summed per-file quantities rather than unique file count alone.
+  The large headline price now shows the pre-VAT subtotal with a separate `+ VAT` indicator instead of presenting the total-inclusive amount in the hero position.
   Unsaved upload drafts now persist per user in the browser, so switching to another route and back restores the current files, quantities, and selected preview.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
   The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
@@ -24,6 +25,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/profile/page.tsx`
   Authenticated order history with per-order totals plus file-level status and quantity.
   Layout-generated template rows show a small first-page thumbnail plus a clean date-based template title, and the page header now uses a generic order-history heading instead of the customer company name.
+  The profile header now includes a current-month total-spend summary that resets at the start of each new month.
   The logout button lives on this page rather than in the shared header.
 - `src/app/admin/login/page.tsx`
   Admin-only login entrypoint.
@@ -38,6 +40,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.
   Duplicates are grouped under their original artwork in the list, and parent size changes resize the whole duplicate group.
   The background toggle now offers `Light`, `Grey`, and `Dark`, with light remaining the default and grey rendering the printable area as `50%` black.
+  The background controls now sit under their own eyebrow-style `Background` label to match the layout and artwork sections.
   The preview panel now includes an `Add to order` action that renders the current layout as a PDF template, shows the same spinner/tick modal pattern as upload, and routes to `/` with the generated template injected into the normal upload list.
   New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, duplicate spacing uses a `10mm` gap, and duplicate rows restart from the left canvas edge after the source row has filled to the right.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.

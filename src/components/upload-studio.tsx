@@ -739,9 +739,6 @@ export function UploadStudio({ userId }: { userId: string }) {
               <h2 className="mt-5 text-xl font-semibold text-[#1c1c1c]">
                 Add artwork files
               </h2>
-              <p className="mt-2 text-sm leading-7 text-[#666666]">
-                Drag and drop your files here or choose them from your device.
-              </p>
 
               <label className="primary-button mt-6 inline-flex cursor-pointer px-5 py-3 text-sm">
                 Choose files
@@ -828,23 +825,18 @@ export function UploadStudio({ userId }: { userId: string }) {
 
             <div className="rounded-[2rem] border border-[#7e00ff]/14 bg-[#faf8ff] p-5">
               <p className="eyebrow">Price</p>
-              <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
-                {pricing.fileCount === 0
-                  ? "£0"
-                  : formatCurrencyFromPence(pricing.totalPence)}
-              </p>
-              <p className="mt-3 text-sm leading-7 text-[#666666]">
-                {pricing.fileCount > 0
-                  ? `Total including VAT for ${pricing.fileCount} upload${pricing.fileCount === 1 ? "" : "s"}.`
-                  : "Add files to see your order total."}
-              </p>
-              {files.length > 0 && totalUploadCount !== files.length ? (
-                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-[#7e00ff]">
-                  {files.length} artwork file{files.length === 1 ? "" : "s"} across{" "}
-                  {totalUploadCount} billed upload
-                  {totalUploadCount === 1 ? "" : "s"}
+              <div className="mt-3 flex items-end gap-2">
+                <p className="text-3xl font-semibold tracking-[-0.03em] text-[#1c1c1c]">
+                  {pricing.fileCount === 0
+                    ? "£0"
+                    : formatCurrencyFromPence(pricing.subtotalPence)}
                 </p>
-              ) : null}
+                {pricing.fileCount > 0 ? (
+                  <span className="pb-1 text-sm font-medium uppercase tracking-[0.12em] text-[#666666]">
+                    + VAT
+                  </span>
+                ) : null}
+              </div>
 
               <div className="mt-5 space-y-3 text-sm text-[#666666]">
                 <div className="flex items-center justify-between">

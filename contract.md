@@ -38,6 +38,7 @@
   - unsent upload drafts persist per user in the browser, including files, quantities, and selected preview state, so switching routes does not clear the current upload list
   - a template generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
   - layout-generated templates use a clean `Template <date>.pdf` filename instead of an ISO timestamp name
+  - the large headline price shows the pre-VAT subtotal with a separate `+ VAT` indicator
   - after order creation, the UI shows an upload modal while background uploads are running
   - the success state is shown only after the real upload completes
   - the success tick remains visible briefly before the order view refreshes
@@ -46,6 +47,7 @@
   - authenticated users land directly in the layout canvas without a visible create-layout step
   - layout background mode persists to PostgreSQL, with `LIGHT` as the default mode
   - the background toggle offers `LIGHT`, `GREY`, and `DARK`, where `GREY` renders the printable area as `50%` black
+  - the background controls sit under a dedicated eyebrow-style `Background` heading
   - unsaved layout drafts persist per user in the browser, including artwork files, positions, sizes, copy counts, selected item, and background mode, so switching routes does not clear the current canvas
   - artwork can be added directly onto the preview by drag/drop or file picker
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
@@ -202,6 +204,7 @@
 ### `/profile`
 
 - Show only the signed-in user’s orders.
+- Show a current-month spend total at the top of the page; it resets when the month changes.
 - Show all files within each order.
 - Show the quantity stored against each uploaded artwork.
 - Show a small first-page thumbnail beside layout-generated template files.
