@@ -28,8 +28,10 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Admin inbox with customer details, order totals, file links, per-file quantity, and status controls.
 - `src/app/layout/page.tsx`
   V2 saved-layout workspace for artwork layout on a `560mm x 1000mm` template canvas.
-  The page now loads persisted layouts from PostgreSQL, lets authenticated users create new layouts, and saves background-mode changes through authenticated APIs.
-  The artwork tray remains local-only for now; Cloudinary-backed V2 asset uploads are still pending.
+  The page auto-provisions a saved layout shell when needed, persists background-mode changes through authenticated APIs, and removes developer-facing placeholder copy.
+  The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, resize them from a bottom-right handle, arrange all pieces, and duplicate the selected piece into a bounded grid.
+  New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds.
+  Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
   JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, admin status updates, and V2 layout create/list/update routes.
 
@@ -51,9 +53,10 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Profile/admin file opening goes through an authenticated app route that redirects to a signed Cloudinary raw delivery URL, because the stored raw upload URLs are not relied on as customer-facing links.
   Order status is derived from file upload states: any failure -> `FAILED`, all uploaded -> `RECEIVED`, otherwise `UPLOADING`.
 - Layout V2:
-  Authenticated users can create persisted layout shells tied to their account.
+  Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
   Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit.
-  The V2 local artwork tray still uses browser object URLs only; V2 asset upload, placement, arrange, and duplicate flows are not implemented yet.
+  The preview canvas accepts direct artwork intake, supports selection, drag, resize, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
+  The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:
   The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
@@ -61,8 +64,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   In the signed-in header, upload/layout/admin navigation sits directly to the right of the logo, and the profile link is a right-aligned icon button.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
-- V2 layout scaffold:
-  `/layout` currently provides the shell, fixed template area, background toggle, and placeholder controls only.
+- V2 canvas:
+  `/layout` now provides the interactive template area, background toggle, direct artwork intake, and local arrange/duplicate/resize controls.
 
 ## Data Model Summary
 
@@ -127,7 +130,7 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 
 ## Known Placeholders
 
-- `/layout` now persists saved layout shells and background mode, but V2 artwork asset uploads, manual placement, arrange, and duplicate are still placeholder work.
+- `/layout` now supports direct artwork intake plus local drag/resize/arrange/duplicate interactions, but V2 artwork asset uploads and persisted layout items are still pending.
 - No checkout/payment flow exists in V1.
 - Cloudinary uploads are direct-to-cloud; no local file persistence exists on the app server.
 

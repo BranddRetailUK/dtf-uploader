@@ -12,8 +12,8 @@
 
 - V1 includes auth, artwork uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
 - V1 does not include online payment.
-- V2 now includes persisted saved layouts and background mode.
-- V2 does not yet include layout asset uploads, manual placement, auto-arrange, or duplication logic.
+- V2 now includes an interactive layout canvas with persisted background mode.
+- V2 does not yet include Cloudinary-backed layout asset uploads or persisted layout items across reloads.
 
 ## Business Rules
 
@@ -40,9 +40,12 @@
   - the success tick remains visible briefly before the order view refreshes
   - real upload failures are persisted and surfaced later in profile/admin
 - V2 layout UX:
-  - authenticated users can create saved layouts
+  - authenticated users land directly in the layout canvas without a visible create-layout step
   - layout background mode persists to PostgreSQL
-  - the V2 artwork tray is still local-only until layout asset uploads are implemented
+  - artwork can be added directly onto the preview by drag/drop or file picker
+  - each artwork can be selected, dragged, resized from a handle, arranged, and duplicated in a bounded grid
+  - new artwork is placed top-left first, then across the row, then below when horizontal space runs out
+  - the V2 artwork pieces are still local-only until layout asset uploads are implemented
 - Order status derivation during upload finalization:
   - any file `FAILED` => order `FAILED`
   - all files `UPLOADED` => order `RECEIVED`
@@ -207,10 +210,12 @@
 
 - Authenticated V2 saved-layout workspace.
 - Fixed `560mm x 1000mm` template preview area.
-- Saved layouts list with create action.
 - Light/dark background toggle persisted to the selected layout.
-- Local-only artwork tray placeholder.
-- Placeholder `Arrange` and `Duplicate` controls.
+- Direct artwork intake on the preview via drag/drop or file picker.
+- Selected artwork shows a bounding box and resize handle.
+- `Arrange` repacks current artwork inside the printable bounds.
+- `Duplicate` repeats the selected artwork in a bounded grid until the next copy would exceed the preview bounds.
+- Local artwork list mirrors the pieces currently loaded into the preview.
 
 ## Endpoint Contract
 
