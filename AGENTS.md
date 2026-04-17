@@ -13,7 +13,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Logged-out users see a centered signup/login card with the Lami logo above it.
   Logged-in users see the artwork uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
-  The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, and shows left/right controls when multiple files are loaded.
+  The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
 - `src/app/signup/page.tsx`
   Customer auth screen with signup selected by default.
 - `src/app/login/page.tsx`

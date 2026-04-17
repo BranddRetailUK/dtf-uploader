@@ -107,6 +107,7 @@
 - Logged in:
   - two-column upload layout
   - left-column selected file preview window with no browser PDF toolbar
+  - PDF previews render the first page fitted inside the preview pane
   - the preview window accepts drag/drop file uploads
   - left/right preview arrows appear when multiple files are loaded
   - right-column multi-file artwork selection box
