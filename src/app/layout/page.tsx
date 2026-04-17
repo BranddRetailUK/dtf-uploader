@@ -1,8 +1,10 @@
 import { LayoutV2Studio } from "@/components/layout-v2-studio";
 import { requireUser } from "@/lib/auth";
+import { getLayoutsForUser } from "@/lib/layouts";
 
 export default async function LayoutV2Page() {
-  await requireUser();
+  const user = await requireUser();
+  const initialLayouts = await getLayoutsForUser(user.id);
 
-  return <LayoutV2Studio />;
+  return <LayoutV2Studio initialLayouts={initialLayouts} />;
 }

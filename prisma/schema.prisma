@@ -39,6 +39,8 @@ model User {
   updatedAt    DateTime  @updatedAt
   sessions     Session[]
   orders       Order[]
+  layouts      Layout[]
+  artworkAssets ArtworkAsset[]
 }
 
 model Session {
@@ -77,6 +79,7 @@ model OrderFile {
   originalName       String
   mimeType           String
   bytes              Int
+  quantity           Int          @default(1)
   uploadStatus       UploadStatus @default(PENDING)
   cloudinaryPublicId String?
   cloudinaryUrl      String?
@@ -87,6 +90,70 @@ model OrderFile {
 
   @@index([orderId])
   @@index([uploadStatus])
+}
+
+enum LayoutBackgroundMode {
+  LIGHT
+  DARK
+}
+
+model Layout {
+  id               String               @id @default(cuid())
+  userId           String
+  name             String
+  backgroundMode   LayoutBackgroundMode @default(LIGHT)
+  canvasWidthMm    Int                  @default(560)
+  canvasHeightMm   Int                  @default(1000)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items            LayoutItem[]
+
+  @@index([userId, createdAt])
+}
+
+model ArtworkAsset {
+  id                 String       @id @default(cuid())
+  userId             String
+  originalName       String
+  mimeType           String
+  bytes              Int
+  widthPx            Int?
+  heightPx           Int?
+  dpiX               Int?
+  dpiY               Int?
+  aspectRatio        Float?
+  uploadStatus       UploadStatus @default(PENDING)
+  cloudinaryPublicId String?
+  cloudinaryUrl      String?
+  errorMessage       String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layoutItems        LayoutItem[]
+
+  @@index([userId, createdAt])
+  @@index([uploadStatus])
+}
+
+model LayoutItem {
+  id             String       @id @default(cuid())
+  layoutId       String
+  artworkAssetId String
+  xMm            Float
+  yMm            Float
+  widthMm        Float
+  heightMm       Float
+  rotationDeg    Float        @default(0)
+  quantity       Int          @default(1)
+  zIndex         Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  layout         Layout       @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  artworkAsset   ArtworkAsset @relation(fields: [artworkAssetId], references: [id], onDelete: Cascade)
+
+  @@index([layoutId, zIndex])
+  @@index([artworkAssetId])
 }
 
 model RateLimitBucket {

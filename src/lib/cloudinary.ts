@@ -36,6 +36,14 @@ export function buildCloudinaryFolder(userId: string, orderId: string) {
   return `DTF/${userId}/${orderId}`;
 }
 
+export function buildLayoutAssetCloudinaryFolder(userId: string, layoutId: string) {
+  return `DTF_LAYOUT/${userId}/${layoutId}/assets`;
+}
+
+export function buildLayoutOutputCloudinaryFolder(userId: string, layoutId: string) {
+  return `DTF_LAYOUT_OUTPUT/${userId}/${layoutId}`;
+}
+
 export function buildCloudinaryAssetName(orderFileId: string, originalName: string) {
   return `${orderFileId}-${sanitizeFileStem(originalName)}${sanitizeFileExtension(
     originalName,

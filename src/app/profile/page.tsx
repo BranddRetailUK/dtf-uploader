@@ -71,7 +71,7 @@ export default async function ProfilePage() {
               </div>
               <div className="flex flex-wrap gap-3 text-sm text-[#666666]">
                 <span>{formatDateTime(order.createdAt)}</span>
-                <span>{order.fileCount} file{order.fileCount === 1 ? "" : "s"}</span>
+                <span>{order.fileCount} upload{order.fileCount === 1 ? "" : "s"}</span>
               </div>
             </div>
 
@@ -105,7 +105,7 @@ export default async function ProfilePage() {
                       {file.originalName}
                     </p>
                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#666666]">
-                      {formatFileSize(file.bytes)} • {file.mimeType}
+                      {formatFileSize(file.bytes)} • {file.mimeType} • Qty {file.quantity}
                     </p>
                   </div>
 

@@ -14,6 +14,10 @@ import {
 } from "react-icons/fi";
 
 import { formatCurrencyFromPence, formatFileSize } from "@/lib/format";
+import {
+  DEFAULT_ORDER_FILE_QUANTITY,
+  MAX_ORDER_FILE_QUANTITY,
+} from "@/lib/order-config";
 import { calculatePriceBreakdown } from "@/lib/pricing";
 import { PdfPreview } from "@/components/pdf-preview";
 
@@ -23,6 +27,7 @@ type LocalUpload = {
   name: string;
   type: string;
   size: number;
+  quantity: number;
   previewUrl: string;
 };
 
@@ -67,6 +72,10 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
+function getTotalUploadCount(files: Pick<LocalUpload, "quantity">[]) {
+  return files.reduce((sum, file) => sum + file.quantity, 0);
+}
+
 export function UploadStudio() {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -106,7 +115,8 @@ export function UploadStudio() {
   const selectedIndex = selectedFile
     ? files.findIndex((file) => file.clientId === selectedFile.clientId)
     : -1;
-  const pricing = calculatePriceBreakdown(files.length);
+  const totalUploadCount = getTotalUploadCount(files);
+  const pricing = calculatePriceBreakdown(totalUploadCount);
 
   function handleDragEnter(event: React.DragEvent<HTMLElement>) {
     event.preventDefault();
@@ -184,6 +194,7 @@ export function UploadStudio() {
       name: file.name,
       type: file.type || "application/octet-stream",
       size: file.size,
+      quantity: DEFAULT_ORDER_FILE_QUANTITY,
       previewUrl: URL.createObjectURL(file),
     }));
 
@@ -220,6 +231,24 @@ export function UploadStudio() {
     });
   }
 
+  function updateFileQuantity(clientId: string, delta: number) {
+    setFiles((current) =>
+      current.map((file) => {
+        if (file.clientId !== clientId) {
+          return file;
+        }
+
+        return {
+          ...file,
+          quantity: Math.min(
+            MAX_ORDER_FILE_QUANTITY,
+            Math.max(1, file.quantity + delta),
+          ),
+        };
+      }),
+    );
+  }
+
   function showAdjacentPreview(direction: "previous" | "next") {
     if (files.length < 2) {
       return;
@@ -247,6 +276,7 @@ export function UploadStudio() {
           name: file.name,
           size: file.size,
           type: file.type,
+          quantity: file.quantity,
         })),
       }),
     });
@@ -584,6 +614,9 @@ export function UploadStudio() {
                   <div className="rounded-full border border-[#1c1c1c]/10 bg-[#faf8ff] px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[#666666]">
                     {formatFileSize(selectedFile.size)}
                   </div>
+                  <div className="rounded-full border border-[#1c1c1c]/10 bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[#666666]">
+                    Qty {selectedFile.quantity}
+                  </div>
                   {files.length > 1 ? (
                     <div className="rounded-full border border-[#1c1c1c]/10 bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[#666666]">
                       {selectedIndex + 1} of {files.length}
@@ -634,21 +667,23 @@ export function UploadStudio() {
                   </div>
                 ) : (
                   files.map((file) => (
-                    <button
+                    <div
                       key={file.clientId}
-                      type="button"
-                      onClick={() => setSelectedId(file.clientId)}
                       className={`flex w-full items-center justify-between gap-3 rounded-[1.4rem] border px-4 py-4 text-left transition ${
                         selectedFile?.clientId === file.clientId
                           ? "border-[#7e00ff]/35 bg-[#f7f1ff]"
                           : "border-[#1c1c1c]/8 bg-white hover:border-[#7e00ff]/20"
                       }`}
                     >
-                      <div className="flex min-w-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(file.clientId)}
+                        className="flex min-w-0 flex-1 items-center gap-3"
+                      >
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-[1rem] bg-[#f4ebff] text-[#7e00ff]">
                           <FiFileText className="size-4" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 text-left">
                           <p className="truncate text-sm font-semibold text-[#1c1c1c]">
                             {file.name}
                           </p>
@@ -656,18 +691,43 @@ export function UploadStudio() {
                             {formatFileSize(file.size)}
                           </p>
                         </div>
-                      </div>
+                      </button>
 
-                      <span
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          removeFile(file.clientId);
-                        }}
-                        className="inline-flex size-9 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        <FiTrash2 className="size-4" />
-                      </span>
-                    </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex items-center rounded-full border border-[#7e00ff]/16 bg-white shadow-[0_10px_24px_rgba(126,0,255,0.07)]">
+                          <button
+                            type="button"
+                            onClick={() => updateFileQuantity(file.clientId, -1)}
+                            disabled={file.quantity <= 1}
+                            className="inline-flex size-9 items-center justify-center rounded-l-full text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff] disabled:cursor-not-allowed disabled:opacity-35"
+                            aria-label={`Decrease quantity for ${file.name}`}
+                          >
+                            <FiChevronLeft className="size-4" />
+                          </button>
+                          <span className="min-w-[2.5rem] px-1 text-center text-sm font-semibold text-[#1c1c1c]">
+                            {file.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => updateFileQuantity(file.clientId, 1)}
+                            disabled={file.quantity >= MAX_ORDER_FILE_QUANTITY}
+                            className="inline-flex size-9 items-center justify-center rounded-r-full text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff] disabled:cursor-not-allowed disabled:opacity-35"
+                            aria-label={`Increase quantity for ${file.name}`}
+                          >
+                            <FiChevronRight className="size-4" />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeFile(file.clientId)}
+                          className="inline-flex size-9 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                          aria-label={`Remove ${file.name}`}
+                        >
+                          <FiTrash2 className="size-4" />
+                        </button>
+                      </div>
+                    </div>
                   ))
                 )}
               </div>
@@ -682,9 +742,16 @@ export function UploadStudio() {
               </p>
               <p className="mt-3 text-sm leading-7 text-[#666666]">
                 {pricing.fileCount > 0
-                  ? `Total including VAT for ${pricing.fileCount} file${pricing.fileCount === 1 ? "" : "s"}.`
+                  ? `Total including VAT for ${pricing.fileCount} upload${pricing.fileCount === 1 ? "" : "s"}.`
                   : "Add files to see your order total."}
               </p>
+              {files.length > 0 && totalUploadCount !== files.length ? (
+                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-[#7e00ff]">
+                  {files.length} artwork file{files.length === 1 ? "" : "s"} across{" "}
+                  {totalUploadCount} billed upload
+                  {totalUploadCount === 1 ? "" : "s"}
+                </p>
+              ) : null}
 
               <div className="mt-5 space-y-3 text-sm text-[#666666]">
                 <div className="flex items-center justify-between">
@@ -738,7 +805,7 @@ export function UploadStudio() {
           </div>
         </div>
       </section>
-
+ 
       {modalPhase !== "idle" ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(28,28,28,0.16)] px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-[2rem] border border-[#7e00ff]/16 bg-white p-8 text-center shadow-[0_30px_90px_rgba(28,28,28,0.14)]">

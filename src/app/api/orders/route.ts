@@ -59,13 +59,17 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  const pricing = calculatePriceBreakdown(payload.data.files.length);
+  const totalFileCount = payload.data.files.reduce(
+    (sum, file) => sum + file.quantity,
+    0,
+  );
+  const pricing = calculatePriceBreakdown(totalFileCount);
 
   const created = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
         userId: user.id,
-        fileCount: payload.data.files.length,
+        fileCount: totalFileCount,
         subtotalPence: pricing.subtotalPence,
         vatPence: pricing.vatPence,
         totalPence: pricing.totalPence,
@@ -80,6 +84,7 @@ export async function POST(request: Request) {
             originalName: file.name,
             mimeType: file.type,
             bytes: file.size,
+            quantity: file.quantity,
           },
         }),
       ),

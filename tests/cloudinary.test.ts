@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   buildCloudinaryPublicId,
+  buildLayoutAssetCloudinaryFolder,
+  buildLayoutOutputCloudinaryFolder,
   createSignedAssetDeliveryUrl,
   getCloudinaryAssetVersion,
   isTrustedCloudinaryAssetUrl,
@@ -26,6 +28,17 @@ test("buildCloudinaryPublicId normalizes the filename and preserves the original
   });
 
   assert.equal(publicId, "DTF/user_1/order_1/file_1-my-print-ready-file.ai");
+});
+
+test("layout Cloudinary folders stay separate from v1 upload assets", () => {
+  assert.equal(
+    buildLayoutAssetCloudinaryFolder("user_1", "layout_1"),
+    "DTF_LAYOUT/user_1/layout_1/assets",
+  );
+  assert.equal(
+    buildLayoutOutputCloudinaryFolder("user_1", "layout_1"),
+    "DTF_LAYOUT_OUTPUT/user_1/layout_1",
+  );
 });
 
 test("isTrustedCloudinaryAssetUrl only accepts the configured Cloudinary raw upload path", () => {

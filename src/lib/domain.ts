@@ -8,6 +8,7 @@ export type OrderStatus =
   | "FAILED";
 
 export type UploadStatus = "PENDING" | "UPLOADING" | "UPLOADED" | "FAILED";
+export type LayoutBackgroundMode = "LIGHT" | "DARK";
 
 export type PriceBreakdown = {
   fileCount: number;
@@ -32,6 +33,7 @@ export type OrderFileSummary = {
   originalName: string;
   mimeType: string;
   bytes: number;
+  quantity: number;
   uploadStatus: UploadStatus;
   cloudinaryPublicId: string | null;
   cloudinaryUrl: string | null;
@@ -53,6 +55,47 @@ export type OrderSummary = {
   customer: CustomerSummary;
 };
 
+export type ArtworkAssetSummary = {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  bytes: number;
+  widthPx: number | null;
+  heightPx: number | null;
+  dpiX: number | null;
+  dpiY: number | null;
+  aspectRatio: number | null;
+  uploadStatus: UploadStatus;
+  cloudinaryPublicId: string | null;
+  cloudinaryUrl: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LayoutItemSummary = {
+  id: string;
+  xMm: number;
+  yMm: number;
+  widthMm: number;
+  heightMm: number;
+  rotationDeg: number;
+  quantity: number;
+  zIndex: number;
+  artworkAsset: ArtworkAssetSummary;
+};
+
+export type LayoutSummary = {
+  id: string;
+  name: string;
+  backgroundMode: LayoutBackgroundMode;
+  canvasWidthMm: number;
+  canvasHeightMm: number;
+  createdAt: string;
+  updatedAt: string;
+  items: LayoutItemSummary[];
+};
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   UPLOADING: "Uploading",
   RECEIVED: "Received",
@@ -66,6 +109,11 @@ export const FILE_STATUS_LABELS: Record<UploadStatus, string> = {
   UPLOADING: "Uploading",
   UPLOADED: "Uploaded",
   FAILED: "Failed",
+};
+
+export const LAYOUT_BACKGROUND_MODE_LABELS: Record<LayoutBackgroundMode, string> = {
+  LIGHT: "Light",
+  DARK: "Dark",
 };
 
 export const ADMIN_STATUS_OPTIONS: OrderStatus[] = [

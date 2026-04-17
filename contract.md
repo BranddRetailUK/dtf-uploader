@@ -6,19 +6,22 @@
 - Store uploads in Cloudinary under a `DTF/` folder hierarchy.
 - Persist users, orders, files, and statuses in PostgreSQL.
 - Expose a simple admin inbox for received work.
-- Reserve `/layout` as the V2 artwork layout workspace scaffold.
+- Provide the first persisted V2 layout workspace on `/layout`, with saved layout shells and background mode.
 
 ## Scope
 
 - V1 includes auth, artwork uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
 - V1 does not include online payment.
-- V2 behavior is scaffolded visually only; no auto-arrange or duplication logic is implemented yet.
+- V2 now includes persisted saved layouts and background mode.
+- V2 does not yet include layout asset uploads, manual placement, auto-arrange, or duplication logic.
 
 ## Business Rules
 
 - Price per file: `£14.00`.
 - VAT: `20%`.
 - Totals are stored in pence.
+- Each uploaded artwork has a quantity of at least `1`.
+- Order `fileCount` = `sum(orderFile.quantity)`.
 - Order subtotal = `fileCount * 1400`.
 - Order VAT = `round(subtotal * 0.20)`.
 - Order total = `subtotal + vat`.
@@ -31,10 +34,15 @@
 - Customer/admin file opening is served through an authenticated app route that redirects to a signed Cloudinary raw delivery URL.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
+  - each artwork card has a quantity stepper with arrow buttons; manual number entry is not allowed
   - after order creation, the UI shows an upload modal while background uploads are running
   - the success state is shown only after the real upload completes
   - the success tick remains visible briefly before the order view refreshes
   - real upload failures are persisted and surfaced later in profile/admin
+- V2 layout UX:
+  - authenticated users can create saved layouts
+  - layout background mode persists to PostgreSQL
+  - the V2 artwork tray is still local-only until layout asset uploads are implemented
 - Order status derivation during upload finalization:
   - any file `FAILED` => order `FAILED`
   - all files `UPLOADED` => order `RECEIVED`
@@ -82,10 +90,56 @@
 - `originalName: string`
 - `mimeType: string`
 - `bytes: integer`
+- `quantity: integer`
 - `uploadStatus: PENDING | UPLOADING | UPLOADED | FAILED`
 - `cloudinaryPublicId: string | null`
 - `cloudinaryUrl: string | null`
 - `errorMessage: string | null`
+- `createdAt: datetime`
+- `updatedAt: datetime`
+
+### Layout
+
+- `id: string`
+- `userId: string`
+- `name: string`
+- `backgroundMode: LIGHT | DARK`
+- `canvasWidthMm: integer`
+- `canvasHeightMm: integer`
+- `createdAt: datetime`
+- `updatedAt: datetime`
+
+### ArtworkAsset
+
+- `id: string`
+- `userId: string`
+- `originalName: string`
+- `mimeType: string`
+- `bytes: integer`
+- `widthPx: integer | null`
+- `heightPx: integer | null`
+- `dpiX: integer | null`
+- `dpiY: integer | null`
+- `aspectRatio: number | null`
+- `uploadStatus: PENDING | UPLOADING | UPLOADED | FAILED`
+- `cloudinaryPublicId: string | null`
+- `cloudinaryUrl: string | null`
+- `errorMessage: string | null`
+- `createdAt: datetime`
+- `updatedAt: datetime`
+
+### LayoutItem
+
+- `id: string`
+- `layoutId: string`
+- `artworkAssetId: string`
+- `xMm: number`
+- `yMm: number`
+- `widthMm: number`
+- `heightMm: number`
+- `rotationDeg: number`
+- `quantity: integer`
+- `zIndex: integer`
 - `createdAt: datetime`
 - `updatedAt: datetime`
 
@@ -112,7 +166,9 @@
   - the preview window accepts drag/drop file uploads
   - left/right preview arrows appear when multiple files are loaded
   - right-column multi-file artwork selection box
+  - each artwork card includes a quantity stepper with left/right arrows
   - price summary below the upload box
+  - price summary reflects the summed billed quantity across all artwork cards
   - send button below the price summary
   - upload modal tied to real upload completion
 
@@ -128,6 +184,7 @@
 
 - Show only the signed-in user’s orders.
 - Show all files within each order.
+- Show the quantity stored against each uploaded artwork.
 - Show collated subtotal, VAT, and total per order.
 - Show file/order failure states if background upload later failed.
 
@@ -139,6 +196,7 @@
 
 - Admin-only order inbox.
 - Show customer details, totals, files, and current status.
+- Show the quantity stored against each uploaded artwork.
 - Allow status updates to:
   - `RECEIVED`
   - `IN_PRODUCTION`
@@ -147,10 +205,11 @@
 
 ### `/layout`
 
-- Authenticated V2 scaffold page.
+- Authenticated V2 saved-layout workspace.
 - Fixed `560mm x 1000mm` template preview area.
-- Light/dark background toggle.
-- Placeholder artwork tray.
+- Saved layouts list with create action.
+- Light/dark background toggle persisted to the selected layout.
+- Local-only artwork tray placeholder.
 - Placeholder `Arrange` and `Duplicate` controls.
 
 ## Endpoint Contract
@@ -205,13 +264,13 @@
 - Auth:
   - logged-in user required
 - Request:
-  - `files: [{ clientId, name, size, type }]`
+  - `files: [{ clientId, name, size, type, quantity }]`
 - Logic:
   - validate file metadata
   - apply fixed-window rate limits
-  - calculate totals
+  - calculate totals from the summed file quantities
   - create one `Order`
-  - create one `OrderFile` per input file
+  - create one `OrderFile` per input file and persist its quantity
 - Response:
   - `orderId`
   - `pricing`
@@ -303,6 +362,41 @@
 - Response:
   - updated order summary
 
+### `GET /api/layouts`
+
+- Auth:
+  - logged-in user required
+- Response:
+  - list of current user layouts with layout items
+
+### `POST /api/layouts`
+
+- Auth:
+  - logged-in user required
+- Request:
+  - `name?: string`
+  - `backgroundMode?: LIGHT | DARK`
+- Logic:
+  - create a saved layout for the current user
+  - default the canvas size to `560mm x 1000mm`
+- Response:
+  - `layout`
+
+### `PATCH /api/layouts/:layoutId`
+
+- Auth:
+  - logged-in user required
+- Request:
+  - `name?: string`
+  - `backgroundMode?: LIGHT | DARK`
+  - `items?: [{ artworkAssetId, xMm, yMm, widthMm, heightMm, rotationDeg, quantity, zIndex }]`
+- Logic:
+  - ensure the layout belongs to the current user
+  - optionally replace the saved layout items
+  - reject artwork assets that are not owned by the current user
+- Response:
+  - updated layout
+
 ## Environment Contract
 
 - `DATABASE_URL`
@@ -325,6 +419,8 @@
 - Monetary values are integers in pence.
 - Users can only read their own orders.
 - Only admins can read/update all orders.
+- `Order.fileCount` must equal the summed `OrderFile.quantity` values.
 - Stored Cloudinary links must be trusted `res.cloudinary.com/<cloud_name>/raw/upload` HTTPS URLs.
+- V2 layout asset storage is reserved for `DTF_LAYOUT/...` and layout outputs for `DTF_LAYOUT_OUTPUT/...`.
 - Public-facing UI uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` as the primary accent.
 - `contract.md` must be updated whenever APIs, business rules, or scope change.

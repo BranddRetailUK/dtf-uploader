@@ -43,6 +43,7 @@ function serializeOrder(order: OrderWithRelations): OrderSummary {
       originalName: file.originalName,
       mimeType: file.mimeType,
       bytes: file.bytes,
+      quantity: file.quantity,
       uploadStatus: file.uploadStatus,
       cloudinaryPublicId: file.cloudinaryPublicId,
       cloudinaryUrl: isTrustedCloudinaryAssetUrl(file.cloudinaryUrl)
