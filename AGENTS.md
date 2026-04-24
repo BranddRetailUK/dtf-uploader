@@ -19,6 +19,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
 - `src/app/home/page.tsx`
   Public DTF transfer home page that remains accessible to signed-in users from the main header Home button.
+  Guest users see signup/login CTAs; signed-in users see upload/layout CTAs and no signup prompts.
 - `src/app/signup/page.tsx`
   Customer auth screen with signup selected by default.
 - `src/app/login/page.tsx`

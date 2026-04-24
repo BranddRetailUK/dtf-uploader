@@ -202,6 +202,8 @@
 - Accessible to both logged-out and signed-in users.
 - Signed-in users can reach it from the main header Home button.
 - Uses the same content and styling as the logged-out `/` home experience.
+- Guest users see signup/login CTAs.
+- Signed-in users do not see signup prompts; they see upload/layout actions instead.
 
 ### `/signup`
 

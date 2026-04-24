@@ -87,41 +87,77 @@ function HeroScene() {
   );
 }
 
-export function PublicHomePage() {
+export function PublicHomePage({
+  isSignedIn = false,
+}: {
+  isSignedIn?: boolean;
+}) {
+  const primaryHeroCta = isSignedIn
+    ? {
+        href: "/",
+        label: "Upload artwork",
+        icon: <FiUploadCloud className="size-4" />,
+      }
+    : {
+        href: "/signup",
+        label: "Create an account",
+        icon: <FiUploadCloud className="size-4" />,
+      };
+  const secondaryHeroCta = isSignedIn
+    ? {
+        href: "/layout",
+        label: "Create layout",
+      }
+    : {
+        href: "/login",
+        label: "Login to upload",
+      };
+  const footerCta = isSignedIn
+    ? {
+        href: "/",
+        label: "Upload files",
+      }
+    : {
+        href: "/signup",
+        label: "Create account",
+      };
+
   return (
     <div className="pb-16">
       <section className="relative left-1/2 min-h-[74svh] w-screen -translate-x-1/2 overflow-hidden">
         <HeroScene />
 
         <div className="relative z-10 mx-auto flex min-h-[74svh] max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-          <nav className="flex items-center justify-between gap-4">
-            <Link href="/" aria-label="Lami home" className="inline-flex">
-              <span className="sm:hidden">
-                <LamiLogo width={112} priority />
-              </span>
-              <span className="hidden sm:inline-flex">
-                <LamiLogo width={148} priority />
-              </span>
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="secondary-button px-3 py-2.5 text-sm sm:px-4"
-              >
-                Login
-              </Link>
-              <Link
-                href="/signup"
-                className="primary-button px-3 py-2.5 text-sm sm:px-4"
-              >
-                <span>
-                  Start<span className="hidden sm:inline"> upload</span>
+          {isSignedIn ? null : (
+            <nav className="flex items-center justify-between gap-4">
+              <Link href="/" aria-label="Lami home" className="inline-flex">
+                <span className="sm:hidden">
+                  <LamiLogo width={112} priority />
                 </span>
-                <FiArrowRight className="size-4" />
+                <span className="hidden sm:inline-flex">
+                  <LamiLogo width={148} priority />
+                </span>
               </Link>
-            </div>
-          </nav>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="secondary-button px-3 py-2.5 text-sm sm:px-4"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="primary-button px-3 py-2.5 text-sm sm:px-4"
+                >
+                  <span>
+                    Start<span className="hidden sm:inline"> upload</span>
+                  </span>
+                  <FiArrowRight className="size-4" />
+                </Link>
+              </div>
+            </nav>
+          )}
 
           <div className="flex flex-1 items-center py-12">
             <div className="max-w-3xl">
@@ -136,12 +172,18 @@ export function PublicHomePage() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/signup" className="primary-button px-6 py-3.5 text-sm">
-                  Create an account
-                  <FiUploadCloud className="size-4" />
+                <Link
+                  href={primaryHeroCta.href}
+                  className="primary-button px-6 py-3.5 text-sm"
+                >
+                  {primaryHeroCta.label}
+                  {primaryHeroCta.icon}
                 </Link>
-                <Link href="/login" className="secondary-button px-6 py-3.5 text-sm">
-                  Login to upload
+                <Link
+                  href={secondaryHeroCta.href}
+                  className="secondary-button px-6 py-3.5 text-sm"
+                >
+                  {secondaryHeroCta.label}
                 </Link>
               </div>
 
@@ -235,8 +277,8 @@ export function PublicHomePage() {
               Send your next DTF run with combined metreage pricing.
             </h2>
           </div>
-          <Link href="/signup" className="primary-button px-6 py-3.5 text-sm">
-            Create account
+          <Link href={footerCta.href} className="primary-button px-6 py-3.5 text-sm">
+            {footerCta.label}
             <FiArrowRight className="size-4" />
           </Link>
         </div>
