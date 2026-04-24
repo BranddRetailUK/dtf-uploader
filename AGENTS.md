@@ -17,6 +17,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Unsaved upload drafts now persist per user in the browser, so switching to another route and back restores the current files, quantities, and selected preview.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
   The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
+- `src/app/home/page.tsx`
+  Public DTF transfer home page that remains accessible to signed-in users from the main header Home button.
 - `src/app/signup/page.tsx`
   Customer auth screen with signup selected by default.
 - `src/app/login/page.tsx`
@@ -81,7 +83,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The public customer entry is now a Lami-branded DTF transfer home page; dedicated `/signup` and `/login` routes still use the logo-plus-auth screen.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
   The signed-in header uses a separate logo asset from the public auth screen.
-  In the signed-in header, upload/create-layout/admin navigation sits directly to the right of the logo, and both the upload and profile actions use the accent-purple button treatment.
+  In the signed-in header, home/upload/create-layout/admin navigation sits directly to the right of the logo, and both the upload and profile actions use the accent-purple button treatment.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 canvas:
@@ -109,7 +111,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 ## Routes And Guards
 
 - Public:
-  `/`, `/signup`, `/login`, `/admin/login`
+  `/`, `/home`, `/signup`, `/login`, `/admin/login`
 - Authenticated user:
   `/profile`, `/layout`
 - Authenticated admin:

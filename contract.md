@@ -196,13 +196,20 @@
   - send button below the price summary
   - upload modal tied to real upload completion
 
+### `/home`
+
+- Public DTF transfer home page.
+- Accessible to both logged-out and signed-in users.
+- Signed-in users can reach it from the main header Home button.
+- Uses the same content and styling as the logged-out `/` home experience.
+
 ### `/signup`
 
-- same customer auth screen as `/`, with signup selected by default
+- Customer auth screen with signup selected by default.
 
 ### `/login`
 
-- same customer auth screen as `/`, with login selected by default
+- Customer auth screen with login selected by default.
 
 ### `/profile`
 

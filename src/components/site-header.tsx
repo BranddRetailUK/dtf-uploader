@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FiLayers, FiShield, FiUser } from "react-icons/fi";
+import { FiHome, FiLayers, FiShield, FiUser } from "react-icons/fi";
 
 import { LamiLogo } from "@/components/lami-logo";
 import type { AuthUser } from "@/lib/auth";
@@ -18,6 +18,13 @@ export function SiteHeader({ user }: { user: AuthUser }) {
             </Link>
 
             <nav className="flex flex-wrap items-center gap-2 text-sm">
+              <Link
+                href="/home"
+                className="secondary-button px-3.5 py-2"
+              >
+                <FiHome className="size-4" />
+                Home
+              </Link>
               <Link
                 href="/"
                 className="primary-button px-3.5 py-2"
