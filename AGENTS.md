@@ -9,8 +9,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 ## Current App Map
 
 - `src/app/page.tsx`
-  Primary upload page.
-  Logged-out users see a vertically centered signup/login card with the Lami logo above it.
+  Primary public home and signed-in upload route.
+  Logged-out users see a public DTF transfer home page with Lami branding, signup/login CTAs, and copy explaining the combined-metreage bulk-pricing USP.
   Logged-in users see the artwork uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
   Each uploaded artwork card now includes a styled arrow-stepper quantity control; the billed upload count and price summary use the summed per-file quantities rather than unique file count alone.
   The large headline price now shows the pre-VAT subtotal with a separate `+ VAT` indicator instead of presenting the total-inclusive amount in the hero position.
@@ -78,7 +78,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The preview canvas no longer shows a bounding box, resize handle, or file-title badge on each artwork.
   The V2 artwork pieces still use browser object URLs only; Cloudinary-backed asset upload and persisted layout items are not implemented yet.
 - Layout and branding:
-  The public customer entry is a logo-plus-auth screen rather than a marketing landing page.
+  The public customer entry is now a Lami-branded DTF transfer home page; dedicated `/signup` and `/login` routes still use the logo-plus-auth screen.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
   The signed-in header uses a separate logo asset from the public auth screen.
   In the signed-in header, upload/create-layout/admin navigation sits directly to the right of the logo, and both the upload and profile actions use the accent-purple button treatment.
@@ -137,7 +137,7 @@ Guards are implemented in server-side page loaders and API route checks, not mid
 - V1 accepts any file type up to the existing per-file size limit.
 - Direct Cloudinary uploads are verified as trusted raw assets during finalize; the server no longer restricts uploads to PDFs.
 - The upload modal follows real upload completion instead of a fixed timer.
-- The public home page has no header; the header appears only after authentication.
+- The public home page uses its own lightweight landing navigation; the shared signed-in header appears only after authentication.
 - Shared business rules live in `src/lib/*`.
 - Browser-only draft persistence for upload/layout lives in `src/lib/browser-drafts.ts`.
 - Route handlers return JSON and perform server-side validation with Zod.

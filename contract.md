@@ -3,6 +3,7 @@
 ## Purpose
 
 - Provide a customer-facing artwork upload flow for DTF jobs.
+- Provide a public DTF transfer home page that explains the combined-metreage bulk-pricing proposition.
 - Store uploads in Cloudinary under a `DTF/` folder hierarchy.
 - Persist users, orders, files, and statuses in PostgreSQL.
 - Expose a simple admin inbox for received work.
@@ -10,7 +11,7 @@
 
 ## Scope
 
-- V1 includes auth, artwork uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
+- V1 includes a public home page, auth, artwork uploads, Cloudinary persistence, profile history, pricing display, and admin status updates.
 - V1 does not include online payment.
 - V2 now includes an interactive layout canvas with persisted background mode and PDF handoff into the upload flow.
 - V2 does not yet include Cloudinary-backed layout asset uploads or persisted layout items across reloads.
@@ -176,8 +177,10 @@
 ### `/`
 
 - Logged out:
-  - centered customer auth card with signup/login switching
-  - Lami logo above the auth card
+  - public DTF transfer home page using Lami branding and the shared white, black, and accent-purple theme
+  - lightweight landing navigation with signup and login actions
+  - hero copy communicates that bulk pricing is based on combined metreage across uploaded gang sheets rather than one single uploaded file
+  - sections explain the USP, the upload flow, and the account CTA
 - Logged in:
   - two-column upload layout
   - left-column selected file preview window with no browser PDF toolbar
