@@ -11,12 +11,13 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/page.tsx`
   Primary public home and signed-in upload route.
   Logged-out users see a public DTF transfer home page with Lami branding, signup/login CTAs, and copy explaining the combined-metreage bulk-pricing USP.
-  Logged-in users see the artwork uploader with a left-column preview window, right-column file box, price block, send button, and an upload modal tied to real upload completion.
-  Each uploaded artwork card now includes a styled arrow-stepper quantity control; the billed upload count and price summary use the summed per-file quantities rather than unique file count alone.
+  Logged-in users see the gang sheet uploader for intended `560mm x 1000mm` PDF gang sheets, with a left-column preview window, right-column gang sheet box, price block, send button, and an upload modal tied to real upload completion.
+  The gang sheet upload panel includes a CTA to `/layout` so users can build a `560mm x 1000mm` PDF gang sheet from uploaded artwork and return it to the gang sheet list.
+  Each uploaded gang sheet card now includes a styled arrow-stepper quantity control; the billed upload count and price summary use the summed per-file quantities rather than unique file count alone.
   The large headline price now shows the pre-VAT subtotal with a separate `+ VAT` indicator instead of presenting the total-inclusive amount in the hero position.
   Unsaved upload drafts now persist per user in the browser, so switching to another route and back restores the current files, quantities, and selected preview.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
-  The preview window uses a custom rendered file preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
+  The preview window uses a custom rendered gang sheet preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
 - `src/app/home/page.tsx`
   Public DTF transfer home page that remains accessible to signed-in users from the main header Home button.
   Guest users see signup/login CTAs; signed-in users see upload/layout CTAs and no signup prompts.
@@ -57,10 +58,10 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Login validates the password, optionally enforces admin-only access, and sets the same session cookie.
   Logout deletes the persisted session and clears the cookie.
 - Upload:
-  The client selects artwork files, previews the selected file locally when possible, and calculates price client-side using shared pricing constants.
-  Each selected artwork keeps a non-editable quantity that is adjusted with left/right arrow controls on the artwork card.
+  The client selects gang sheet files, with UI copy aimed at `560mm x 1000mm` PDF gang sheets, previews the selected file locally when possible, and calculates price client-side using shared pricing constants.
+  Each selected gang sheet keeps a non-editable quantity that is adjusted with left/right arrow controls on the gang sheet card.
   Unsaved upload drafts are stored per user in IndexedDB so files survive route changes until the order is sent or the draft is cleared.
-  `/layout` can hand off a generated PDF template into this same local upload list, where it behaves like a normal user-added file.
+  `/layout` can hand off a generated PDF gang sheet into this same local upload list, where it behaves like a normal user-added file.
   The preview panel renders PDFs without the browser PDF toolbar, renders images inline, falls back to a file placeholder for unsupported preview types, and acts as a drag/drop target when empty or populated.
   On upload, the app first creates an order plus `order_files` records in PostgreSQL.
   Each `order_files` row stores the original upload plus its billed quantity; `Order.fileCount` stores the summed quantity across the order.

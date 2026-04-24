@@ -35,9 +35,11 @@
 - Customer/admin file opening is served through an authenticated app route that generates a time-limited signed Cloudinary raw download URL server-side, fetches that URL, and streams it back inline.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
-  - each artwork card has a quantity stepper with arrow buttons; manual number entry is not allowed
+  - upload-page wording presents files as `560mm x 1000mm` PDF gang sheets
+  - the upload panel includes a CTA to `/layout` for creating a gang sheet from uploaded artwork and adding it back to the upload list
+  - each gang sheet card has a quantity stepper with arrow buttons; manual number entry is not allowed
   - unsent upload drafts persist per user in the browser, including files, quantities, and selected preview state, so switching routes does not clear the current upload list
-  - a template generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
+  - a gang sheet PDF generated on `/layout` is inserted into the same upload list and behaves like a normal user-added file
   - layout-generated templates use a clean `Template <date>.pdf` filename instead of an ISO timestamp name
   - the large headline price shows the pre-VAT subtotal with a separate `+ VAT` indicator
   - after order creation, the UI shows an upload modal while background uploads are running
@@ -183,17 +185,18 @@
   - sections explain the USP, the upload flow, and the account CTA
 - Logged in:
   - two-column upload layout
-  - left-column selected file preview window with no browser PDF toolbar
+  - left-column selected gang sheet preview window with no browser PDF toolbar
   - PDF previews render the first page fitted inside the preview pane
-  - the preview window accepts drag/drop file uploads
+  - the preview window accepts drag/drop gang sheet uploads
   - left/right preview arrows appear when multiple files are loaded
-  - right-column multi-file artwork selection box
+  - right-column multi-file gang sheet selection box worded for `560mm x 1000mm` PDF gang sheets
+  - right-column CTA to `/layout` for creating a gang sheet from uploaded artwork
   - unsent upload drafts survive route changes for the signed-in user
-  - a layout-generated PDF template can appear here as a standard upload file
-  - each artwork card includes a quantity stepper with left/right arrows
+  - a layout-generated PDF gang sheet can appear here as a standard upload file
+  - each gang sheet card includes a quantity stepper with left/right arrows
   - price summary below the upload box
-  - price summary reflects the summed billed quantity across all artwork cards
-  - send button below the price summary
+  - price summary reflects the summed billed quantity across all gang sheet cards
+  - send gang sheets button below the price summary
   - upload modal tied to real upload completion
 
 ### `/home`

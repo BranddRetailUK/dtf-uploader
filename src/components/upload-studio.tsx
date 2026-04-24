@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
   FiFileText,
+  FiLayers,
   FiTrash2,
   FiUploadCloud,
 } from "react-icons/fi";
@@ -106,7 +108,7 @@ export function UploadStudio({ userId }: { userId: string }) {
         pendingFiles.length > 0
           ? {
               tone: "success" as const,
-              message: "Your layout template has been added and is ready to send.",
+              message: "Your gang sheet has been added and is ready to send.",
             }
           : null,
     };
@@ -283,7 +285,7 @@ export function UploadStudio({ userId }: { userId: string }) {
     if (nextFiles.length === 0) {
       setFeedback({
         tone: "warning",
-        message: "Please choose one or more files.",
+        message: "Please choose one or more gang sheets.",
       });
       return;
     }
@@ -518,8 +520,8 @@ export function UploadStudio({ userId }: { userId: string }) {
         tone: failures > 0 ? "warning" : "success",
         message:
           failures > 0
-            ? `Your order is saved, but ${failures} file${failures === 1 ? "" : "s"} need attention. You can review the details in your profile.`
-            : "Your files have been uploaded and your order is now available in your profile.",
+            ? `Your order is saved, but ${failures} gang sheet${failures === 1 ? "" : "s"} need attention. You can review the details in your profile.`
+            : "Your gang sheets have been uploaded and your order is now available in your profile.",
       });
 
       if (failures > 0) {
@@ -564,11 +566,11 @@ export function UploadStudio({ userId }: { userId: string }) {
             </div>
             <div className="space-y-2">
               <p className="text-xl font-semibold text-[#1c1c1c]">
-                Drag or upload artwork
+                Drag or upload gang sheets
               </p>
               <p className="text-sm leading-7 text-[#666666]">
-                Drop files here or use the upload area to choose files from your
-                device.
+                Drop 560 x 1000mm PDF gang sheets here or choose them from the
+                upload panel.
               </p>
             </div>
           </div>
@@ -610,8 +612,8 @@ export function UploadStudio({ userId }: { userId: string }) {
                 Preview not available
               </p>
               <p className="text-sm leading-7 text-[#666666]">
-                This file type can still be uploaded, even though it can&apos;t be
-                rendered in the preview window.
+                This gang sheet can still be uploaded, even though it can&apos;t
+                be rendered in the preview window.
               </p>
             </div>
           </div>
@@ -635,7 +637,7 @@ export function UploadStudio({ userId }: { userId: string }) {
               type="button"
               onClick={() => showAdjacentPreview("previous")}
               className="absolute left-4 top-1/2 z-10 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#1c1c1c]/8 bg-white/92 text-[#1c1c1c] shadow-[0_12px_28px_rgba(28,28,28,0.1)] transition hover:border-[#7e00ff]/24 hover:text-[#7e00ff]"
-              aria-label="Show previous file preview"
+              aria-label="Show previous gang sheet preview"
             >
               <FiChevronLeft className="size-5" />
             </button>
@@ -643,7 +645,7 @@ export function UploadStudio({ userId }: { userId: string }) {
               type="button"
               onClick={() => showAdjacentPreview("next")}
               className="absolute right-4 top-1/2 z-10 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#1c1c1c]/8 bg-white/92 text-[#1c1c1c] shadow-[0_12px_28px_rgba(28,28,28,0.1)] transition hover:border-[#7e00ff]/24 hover:text-[#7e00ff]"
-              aria-label="Show next file preview"
+              aria-label="Show next gang sheet preview"
             >
               <FiChevronRight className="size-5" />
             </button>
@@ -675,7 +677,7 @@ export function UploadStudio({ userId }: { userId: string }) {
       void clearUploadDraft(userId);
       setFeedback({
         tone: "neutral",
-        message: "Your order has been created. Your files are uploading now.",
+        message: "Your order has been created. Your gang sheets are uploading now.",
       });
       void runBackgroundUpload(snapshot, orderResponse);
     } catch (error) {
@@ -698,7 +700,7 @@ export function UploadStudio({ userId }: { userId: string }) {
               <div>
                 <p className="eyebrow">Preview</p>
                 <h2 className="mt-2 text-xl font-semibold text-[#1c1c1c]">
-                  {selectedFile?.name ?? "Select a file to preview"}
+                  {selectedFile?.name ?? "Select a gang sheet to preview"}
                 </h2>
               </div>
 
@@ -737,11 +739,11 @@ export function UploadStudio({ userId }: { userId: string }) {
               </div>
 
               <h2 className="mt-5 text-xl font-semibold text-[#1c1c1c]">
-                Add artwork files
+                Add gang sheet PDFs
               </h2>
 
               <label className="primary-button mt-6 inline-flex cursor-pointer px-5 py-3 text-sm">
-                Choose files
+                Choose gang sheets
                 <input
                   type="file"
                   multiple
@@ -753,7 +755,7 @@ export function UploadStudio({ userId }: { userId: string }) {
               <div className="mt-6 space-y-3">
                 {files.length === 0 ? (
                   <div className="rounded-[1.4rem] border border-dashed border-[#1c1c1c]/10 bg-[#fafafa] px-4 py-5 text-sm text-[#666666]">
-                    No files added yet.
+                    No gang sheets added yet.
                   </div>
                 ) : (
                   files.map((file) => (
@@ -821,6 +823,23 @@ export function UploadStudio({ userId }: { userId: string }) {
                   ))
                 )}
               </div>
+
+              <div className="mt-6 border-t border-[#1c1c1c]/8 pt-5">
+                <p className="text-sm font-semibold text-[#1c1c1c]">
+                  Need to create a gang sheet?
+                </p>
+                <p className="mt-2 text-sm leading-7 text-[#666666]">
+                  Build a 560 x 1000mm PDF from uploaded artwork, then add it
+                  back into this gang sheet list.
+                </p>
+                <Link
+                  href="/layout"
+                  className="secondary-button mt-4 px-4 py-2.5 text-sm"
+                >
+                  <FiLayers className="size-4" />
+                  Create a gang sheet
+                </Link>
+              </div>
             </div>
 
             <div className="rounded-[2rem] border border-[#7e00ff]/14 bg-[#faf8ff] p-5">
@@ -860,7 +879,7 @@ export function UploadStudio({ userId }: { userId: string }) {
               disabled={files.length === 0 || isCreatingOrder}
               className="primary-button w-full px-5 py-3.5 text-sm disabled:cursor-not-allowed disabled:opacity-55"
             >
-              {isCreatingOrder ? "Preparing your order..." : "Send files"}
+              {isCreatingOrder ? "Preparing your order..." : "Send gang sheets"}
               <FiUploadCloud className="size-4" />
             </button>
 
@@ -882,9 +901,9 @@ export function UploadStudio({ userId }: { userId: string }) {
 
             {activeBackgroundUploads > 0 ? (
               <p className="text-sm leading-7 text-[#666666]">
-                {activeBackgroundUploads} upload
-                {activeBackgroundUploads === 1 ? "" : "s"} still processing in the
-                background.
+                {activeBackgroundUploads} gang sheet upload
+                {activeBackgroundUploads === 1 ? "" : "s"} still processing in
+                the background.
               </p>
             ) : null}
           </div>
@@ -894,8 +913,8 @@ export function UploadStudio({ userId }: { userId: string }) {
       {modalPhase !== "idle" ? (
         <ActionStatusModal
           phase={modalPhase}
-          loadingTitle="Uploading"
-          loadingMessage="Please wait while your files upload."
+          loadingTitle="Uploading gang sheets"
+          loadingMessage="Please wait while your gang sheets upload."
           successTitle="Uploaded"
           successMessage="Your order has been sent. Any later issue will appear in your profile."
         />
