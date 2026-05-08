@@ -1,5 +1,5 @@
 import { AuthForm } from "@/components/auth-form";
-import { LamiLogo } from "@/components/lami-logo";
+import { LamiLogo } from "@/components/logo";
 
 export function CustomerAuthScreen({
   initialMode,

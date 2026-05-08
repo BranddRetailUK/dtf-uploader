@@ -8,7 +8,7 @@ import {
   FiUploadCloud,
 } from "react-icons/fi";
 
-import { LamiLogo } from "@/components/lami-logo";
+import { LamiLogo } from "@/components/logo";
 
 const heroStats = [
   "10 x 1m files count as 10m",

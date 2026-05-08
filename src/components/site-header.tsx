@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FiHome, FiLayers, FiShield, FiUser } from "react-icons/fi";
 
-import { LamiLogo } from "@/components/lami-logo";
+import { LamiLogo } from "@/components/logo";
 import type { AuthUser } from "@/lib/auth";
 
 export function SiteHeader({ user }: { user: AuthUser }) {

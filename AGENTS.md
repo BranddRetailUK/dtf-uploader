@@ -85,7 +85,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The public customer entry is now a Lami-branded DTF transfer home page; dedicated `/signup` and `/login` routes still use the logo-plus-auth screen.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
   The public home page decorative surfaces, cards, and hero illustration stay within the same white/black/accent-purple palette instead of introducing unrelated accent colours.
-  Public, auth, and signed-in header surfaces use the shared Cloudinary Brandd white no-strap logo asset on an accent-purple backing, and the favicon uses a square padded version of the same treatment.
+  `src/components/logo.tsx` owns the shared Cloudinary Brandd black no-strap logo asset for public, auth, and signed-in header surfaces, and the favicon uses a square padded white-on-accent-purple version.
   In the signed-in header, home/upload/create-layout/admin navigation sits directly to the right of the logo, and both the upload and profile actions use the accent-purple button treatment.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
