@@ -84,7 +84,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - Layout and branding:
   The public customer entry is now a Lami-branded DTF transfer home page; dedicated `/signup` and `/login` routes still use the logo-plus-auth screen.
   The shared customer theme uses a white background, `#1c1c1c` text, Poppins typography, and `#7e00ff` accents.
-  The signed-in header uses a separate logo asset from the public auth screen.
+  Public, auth, and signed-in header surfaces use the shared Cloudinary strap logo asset.
   In the signed-in header, home/upload/create-layout/admin navigation sits directly to the right of the logo, and both the upload and profile actions use the accent-purple button treatment.
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.

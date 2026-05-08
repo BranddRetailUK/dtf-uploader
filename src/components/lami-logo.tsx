@@ -1,7 +1,9 @@
 import Image from "next/image";
 
 const DEFAULT_LOGO_URL =
-  "https://res.cloudinary.com/dhlqooyuk/image/upload/v1776406928/lami_logo_af9hhs.png";
+  "https://res.cloudinary.com/dhlqooyuk/image/upload/v1778178820/LOGO_STRAP_dark_j4tyyu.png";
+
+const LOGO_ASPECT_RATIO = 284 / 1000;
 
 export function LamiLogo(props: {
   src?: string;
@@ -10,7 +12,7 @@ export function LamiLogo(props: {
   className?: string;
 }) {
   const width = props.width ?? 160;
-  const height = Math.round(width * 0.36);
+  const height = Math.round(width * LOGO_ASPECT_RATIO);
   const src = props.src ?? DEFAULT_LOGO_URL;
 
   return (

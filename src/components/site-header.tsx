@@ -4,9 +4,6 @@ import { FiHome, FiLayers, FiShield, FiUser } from "react-icons/fi";
 import { LamiLogo } from "@/components/lami-logo";
 import type { AuthUser } from "@/lib/auth";
 
-const HEADER_LOGO_URL =
-  "https://res.cloudinary.com/dhlqooyuk/image/upload/v1776410659/lami_logo_vlbdbk.png";
-
 export function SiteHeader({ user }: { user: AuthUser }) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#1c1c1c]/8 bg-white/95 backdrop-blur-xl">
@@ -14,7 +11,7 @@ export function SiteHeader({ user }: { user: AuthUser }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
             <Link href="/" className="inline-flex items-center">
-              <LamiLogo width={148} src={HEADER_LOGO_URL} />
+              <LamiLogo width={148} />
             </Link>
 
             <nav className="flex flex-wrap items-center gap-2 text-sm">
