@@ -11,7 +11,7 @@ export function SiteHeader({ user }: { user: AuthUser }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
             <Link href="/" className="inline-flex items-center">
-              <LamiLogo width={148} />
+              <LamiLogo width={192} />
             </Link>
 
             <nav className="flex flex-wrap items-center gap-2 text-sm">
