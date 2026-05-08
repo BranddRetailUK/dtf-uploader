@@ -46,21 +46,22 @@ const steps = [
 function HeroScene() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-0 bg-[#f8f7fb]" />
-      <div className="absolute inset-0 bg-white/70" />
+      <div className="absolute inset-0 bg-[#faf8ff]" />
+      <div className="absolute inset-x-0 top-0 h-28 bg-white" />
+      <div className="absolute inset-0 bg-white/62" />
 
-      <div className="absolute right-[-8rem] top-10 hidden h-[42rem] w-[29rem] rotate-6 rounded-[1.8rem] border border-[#1c1c1c]/10 bg-white/88 p-5 shadow-[0_28px_80px_rgba(28,28,28,0.12)] lg:block">
-        <div className="flex h-full flex-col gap-4 rounded-[1.2rem] border border-dashed border-[#1c1c1c]/18 bg-[#fbfbfb] p-4">
-          <div className="h-8 rounded-full bg-[#1c1c1c]" />
+      <div className="absolute right-[-8rem] top-10 hidden h-[42rem] w-[29rem] rotate-6 rounded-[1.8rem] border border-[#7e00ff]/14 bg-white/92 p-5 shadow-[0_28px_80px_rgba(126,0,255,0.12)] lg:block">
+        <div className="flex h-full flex-col gap-4 rounded-[1.2rem] border border-dashed border-[#7e00ff]/20 bg-[#faf8ff] p-4">
+          <div className="h-8 rounded-full bg-[#7e00ff]" />
           <div className="grid flex-1 grid-cols-3 gap-3">
             <div className="rounded-[1rem] bg-[#7e00ff]" />
-            <div className="rounded-[1rem] bg-[#00a676]" />
-            <div className="rounded-[1rem] bg-[#ffb020]" />
+            <div className="rounded-[1rem] bg-[#f4ebff]" />
+            <div className="rounded-[1rem] bg-[#1c1c1c]" />
             <div className="col-span-2 rounded-[1rem] bg-[#1c1c1c]" />
-            <div className="rounded-[1rem] bg-[#ef476f]" />
-            <div className="rounded-[1rem] bg-[#2ec4b6]" />
+            <div className="rounded-[1rem] bg-[#d8b7ff]" />
+            <div className="rounded-[1rem] bg-[#efe1ff]" />
             <div className="rounded-[1rem] bg-[#7e00ff]" />
-            <div className="rounded-[1rem] bg-[#ffb020]" />
+            <div className="rounded-[1rem] bg-[#c995ff]" />
             <div className="col-span-3 rounded-[1rem] bg-[#f4ebff]" />
           </div>
           <div className="flex items-center justify-between text-xs font-semibold uppercase text-[#666666]">
@@ -70,17 +71,17 @@ function HeroScene() {
         </div>
       </div>
 
-      <div className="absolute bottom-[-8rem] left-[-4rem] h-[24rem] w-[18rem] -rotate-6 rounded-[1.7rem] border border-[#1c1c1c]/10 bg-white/82 p-4 shadow-[0_24px_70px_rgba(28,28,28,0.1)]">
-        <div className="grid h-full grid-cols-2 gap-3 rounded-[1.1rem] border border-dashed border-[#1c1c1c]/16 bg-[#fbfbfb] p-3">
+      <div className="absolute bottom-[-8rem] left-[-4rem] h-[24rem] w-[18rem] -rotate-6 rounded-[1.7rem] border border-[#7e00ff]/14 bg-white/88 p-4 shadow-[0_24px_70px_rgba(126,0,255,0.1)]">
+        <div className="grid h-full grid-cols-2 gap-3 rounded-[1.1rem] border border-dashed border-[#7e00ff]/18 bg-[#faf8ff] p-3">
           <div className="rounded-[0.9rem] bg-[#7e00ff]" />
           <div className="rounded-[0.9rem] bg-[#1c1c1c]" />
-          <div className="col-span-2 rounded-[0.9rem] bg-[#00a676]" />
-          <div className="rounded-[0.9rem] bg-[#ffb020]" />
-          <div className="rounded-[0.9rem] bg-[#ef476f]" />
+          <div className="col-span-2 rounded-[0.9rem] bg-[#f4ebff]" />
+          <div className="rounded-[0.9rem] bg-[#c995ff]" />
+          <div className="rounded-[0.9rem] bg-[#efe1ff]" />
         </div>
       </div>
 
-      <div className="absolute bottom-12 right-10 hidden rounded-full border border-[#7e00ff]/18 bg-white/90 px-5 py-3 text-sm font-semibold text-[#1c1c1c] shadow-[0_18px_48px_rgba(28,28,28,0.1)] md:block">
+      <div className="absolute bottom-12 right-10 hidden rounded-full border border-[#7e00ff]/18 bg-[#faf8ff]/94 px-5 py-3 text-sm font-semibold text-[#7e00ff] shadow-[0_18px_48px_rgba(126,0,255,0.1)] md:block">
         Combined metreage pricing
       </div>
     </div>
@@ -130,7 +131,7 @@ export function PublicHomePage({
         <div className="relative z-10 mx-auto flex min-h-[74svh] max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
           {isSignedIn ? null : (
             <nav className="flex items-center justify-between gap-4">
-              <Link href="/" aria-label="Lami home" className="inline-flex">
+              <Link href="/" aria-label="Brandd home" className="inline-flex">
                 <span className="sm:hidden">
                   <LamiLogo width={112} priority />
                 </span>
@@ -191,7 +192,7 @@ export function PublicHomePage({
                 {heroStats.map((stat) => (
                   <div
                     key={stat}
-                    className="flex items-center gap-3 rounded-[1.3rem] border border-[#1c1c1c]/8 bg-white/86 px-4 py-3 text-sm font-medium text-[#1c1c1c] shadow-[0_16px_42px_rgba(28,28,28,0.06)]"
+                    className="flex items-center gap-3 rounded-[1.3rem] border border-[#7e00ff]/14 bg-[#faf8ff]/90 px-4 py-3 text-sm font-medium text-[#1c1c1c] shadow-[0_16px_42px_rgba(126,0,255,0.07)]"
                   >
                     <FiCheckCircle className="size-4 shrink-0 text-[#7e00ff]" />
                     <span>{stat}</span>
@@ -225,7 +226,7 @@ export function PublicHomePage({
             return (
               <article
                 key={benefit.title}
-                className="rounded-[2rem] border border-[#7e00ff]/14 bg-white p-6 shadow-[0_20px_56px_rgba(28,28,28,0.06)]"
+                className="rounded-[2rem] border border-[#7e00ff]/14 bg-white p-6 shadow-[0_20px_56px_rgba(126,0,255,0.06)]"
               >
                 <div className="flex size-12 items-center justify-center rounded-[1.1rem] bg-[#f4ebff] text-[#7e00ff]">
                   <Icon className="size-5" />
@@ -255,9 +256,9 @@ export function PublicHomePage({
             {steps.map((step, index) => (
               <div
                 key={step}
-                className="flex gap-4 rounded-[1.6rem] border border-[#1c1c1c]/8 bg-[#fafafa] px-5 py-4"
+                className="flex gap-4 rounded-[1.6rem] border border-[#7e00ff]/14 bg-[#faf8ff] px-5 py-4 shadow-[0_14px_32px_rgba(126,0,255,0.05)]"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#7e00ff] text-sm font-semibold text-white">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#7e00ff] text-sm font-semibold text-white shadow-[0_10px_22px_rgba(126,0,255,0.16)]">
                   {index + 1}
                 </div>
                 <p className="pt-1 text-sm leading-7 text-[#4f4f4f] sm:text-base">

@@ -1,9 +1,10 @@
 import Image from "next/image";
 
 const DEFAULT_LOGO_URL =
-  "https://res.cloudinary.com/dhlqooyuk/image/upload/v1778178820/LOGO_STRAP_dark_j4tyyu.png";
+  "https://res.cloudinary.com/dhlqooyuk/image/upload/v1778265380/NEW_LOGO_WHT_NO_STRAP_heexb3.png";
 
-const LOGO_ASPECT_RATIO = 284 / 1000;
+const LOGO_ASPECT_RATIO = 205 / 886;
+const LOGO_ALT_TEXT = "Brandd";
 
 export function LamiLogo(props: {
   src?: string;
@@ -16,14 +17,19 @@ export function LamiLogo(props: {
   const src = props.src ?? DEFAULT_LOGO_URL;
 
   return (
-    <Image
-      src={src}
-      alt="Lami"
-      width={width}
-      height={height}
-      priority={props.priority}
-      className={props.className}
-      style={{ height: "auto", width: `${width}px` }}
-    />
+    <span
+      className={`inline-flex items-center justify-center rounded-full bg-[#7e00ff] px-3 py-2 shadow-[0_12px_28px_rgba(126,0,255,0.14)] ${
+        props.className ?? ""
+      }`}
+    >
+      <Image
+        src={src}
+        alt={LOGO_ALT_TEXT}
+        width={width}
+        height={height}
+        priority={props.priority}
+        style={{ height: "auto", width: `${width}px` }}
+      />
+    </span>
   );
 }
