@@ -9,6 +9,7 @@ import {
   FiGrid,
   FiImage,
   FiMoon,
+  FiRotateCw,
   FiSun,
   FiTrash2,
   FiUploadCloud,
@@ -50,6 +51,7 @@ type CanvasArtwork = {
   yMm: number;
   widthMm: number;
   heightMm: number;
+  rotationDeg: number;
   zIndex: number;
 };
 
@@ -330,6 +332,7 @@ export function LayoutV2Studio({
             yMm: artwork.yMm,
             widthMm: artwork.widthMm,
             heightMm: artwork.heightMm,
+            rotationDeg: artwork.rotationDeg ?? 0,
             zIndex: artwork.zIndex,
           },
         ];
@@ -388,6 +391,7 @@ export function LayoutV2Studio({
           yMm: artwork.yMm,
           widthMm: artwork.widthMm,
           heightMm: artwork.heightMm,
+          rotationDeg: artwork.rotationDeg,
           zIndex: artwork.zIndex,
         })),
       });
@@ -656,6 +660,7 @@ export function LayoutV2Studio({
             heightPx: loadedFile.heightPx,
             widthMm: defaultSize.widthMm,
             heightMm: defaultSize.heightMm,
+            rotationDeg: 0,
             xMm: position.xMm,
             yMm: position.yMm,
             zIndex: nextZIndex,
@@ -825,6 +830,7 @@ export function LayoutV2Studio({
           yMm: artwork.yMm,
           widthMm: artwork.widthMm,
           heightMm: artwork.heightMm,
+          rotationDeg: artwork.rotationDeg,
           zIndex: artwork.zIndex,
         })),
         backgroundMode,
@@ -986,6 +992,35 @@ export function LayoutV2Studio({
     ).length;
 
     setArtworkCopyCount(groupId, currentCopyCount + delta);
+  }
+
+  function rotateArtworks90(artworkId: string, rotateGroup: boolean) {
+    setArtworks((current) => {
+      const target = current.find((artwork) => artwork.id === artworkId);
+
+      if (!target) {
+        return current;
+      }
+
+      const rotated = current.map((artwork) => {
+        if (artwork.id !== artworkId && (!rotateGroup || artwork.groupId !== target.groupId)) {
+          return artwork;
+        }
+
+        return clampLayoutItemToCanvas({
+          ...artwork,
+          widthMm: artwork.heightMm,
+          heightMm: artwork.widthMm,
+          rotationDeg: (artwork.rotationDeg + 90) % 360,
+        });
+      });
+
+      return arrangeLayoutItems(rotated.map(toCanvasRect)).map((position) => ({
+        ...rotated.find((artwork) => artwork.id === position.id)!,
+        xMm: position.xMm,
+        yMm: position.yMm,
+      }));
+    });
   }
 
   return (
@@ -1250,6 +1285,15 @@ export function LayoutV2Studio({
                         <FiChevronRight className="size-4" />
                       </button>
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => rotateArtworks90(group.parent.id, true)}
+                      className="secondary-button px-4 py-2 text-sm"
+                      aria-label={`Rotate ${group.parent.name} and all copies 90 degrees`}
+                    >
+                      <FiRotateCw className="size-4" />
+                      Rotate 90°
+                    </button>
                   </div>
 
                   {group.children.length > 0 ? (
@@ -1273,6 +1317,15 @@ export function LayoutV2Studio({
                                 : "border-[#1c1c1c]/8 bg-[#fafafa]"
                             }`}
                           >
+                            <div className="flex shrink-0 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => rotateArtworks90(artwork.id, false)}
+                              className="inline-flex size-8 items-center justify-center rounded-full border border-[#1c1c1c]/8 text-[#666666] transition hover:border-[#7e00ff]/25 hover:bg-[#f4ebff] hover:text-[#7e00ff]"
+                              aria-label={`Rotate duplicate ${index + 1} for ${group.parent.name} 90 degrees`}
+                            >
+                              <FiRotateCw className="size-3.5" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => bringArtworkToFront(artwork.id)}
@@ -1301,6 +1354,7 @@ export function LayoutV2Studio({
                             >
                               <FiTrash2 className="size-3.5" />
                             </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1382,7 +1436,12 @@ export function LayoutV2Studio({
                       src={artwork.previewUrl}
                       alt={artwork.name}
                       draggable={false}
-                      className="h-full w-full select-none object-contain"
+                      className="absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none object-contain"
+                      style={{
+                        width: artwork.rotationDeg % 180 === 0 ? "100%" : `${(artwork.heightMm / Math.max(artwork.widthMm, 0.001)) * 100}%`,
+                        height: artwork.rotationDeg % 180 === 0 ? "100%" : `${(artwork.widthMm / Math.max(artwork.heightMm, 0.001)) * 100}%`,
+                        transform: `translate(-50%, -50%) rotate(${artwork.rotationDeg}deg)`,
+                      }}
                     />
                   </div>
                 );

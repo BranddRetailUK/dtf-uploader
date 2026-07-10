@@ -20,6 +20,7 @@ export type LayoutTemplateArtwork = {
   yMm: number;
   widthMm: number;
   heightMm: number;
+  rotationDeg?: number;
   zIndex: number;
 };
 
@@ -182,13 +183,26 @@ export async function createLayoutTemplatePdfFile(input: {
   );
 
   sortedArtworks.forEach((artwork, index) => {
+    const xPx = artwork.xMm * TEMPLATE_RENDER_PX_PER_MM;
+    const yPx = artwork.yMm * TEMPLATE_RENDER_PX_PER_MM;
+    const widthPx = artwork.widthMm * TEMPLATE_RENDER_PX_PER_MM;
+    const heightPx = artwork.heightMm * TEMPLATE_RENDER_PX_PER_MM;
+    const rotationDeg = artwork.rotationDeg ?? 0;
+    const isQuarterTurn = rotationDeg % 180 !== 0;
+    const imageWidthPx = isQuarterTurn ? heightPx : widthPx;
+    const imageHeightPx = isQuarterTurn ? widthPx : heightPx;
+
+    context.save();
+    context.translate(xPx + widthPx / 2, yPx + heightPx / 2);
+    context.rotate((rotationDeg * Math.PI) / 180);
     context.drawImage(
       loadedImages[index],
-      artwork.xMm * TEMPLATE_RENDER_PX_PER_MM,
-      artwork.yMm * TEMPLATE_RENDER_PX_PER_MM,
-      artwork.widthMm * TEMPLATE_RENDER_PX_PER_MM,
-      artwork.heightMm * TEMPLATE_RENDER_PX_PER_MM,
+      -imageWidthPx / 2,
+      -imageHeightPx / 2,
+      imageWidthPx,
+      imageHeightPx,
     );
+    context.restore();
   });
 
   const jpegBytes = await createJpegBytesFromCanvas(canvas);

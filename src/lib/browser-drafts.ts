@@ -37,6 +37,7 @@ export type LayoutDraftRecord = {
     yMm: number;
     widthMm: number;
     heightMm: number;
+    rotationDeg?: number;
     zIndex: number;
   }>;
 };

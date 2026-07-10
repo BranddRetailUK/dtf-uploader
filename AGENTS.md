@@ -42,6 +42,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Unsaved layout drafts now persist per user in the browser, so switching away and back restores the current canvas artwork, positions, sizing, copies, selected piece, and background mode.
   Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable with no `40mm` floor.
   Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.
+  Parent artwork rows include a 90-degree rotate action for the full group, while child rows can rotate individual copies; either action repacks the board with bounded spacing.
   Duplicates are grouped under their original artwork in the list, and parent size changes resize the whole duplicate group.
   The background toggle now offers `Light`, `Grey`, and `Dark`, with light remaining the default and grey rendering the printable area as `50%` black.
   The background controls now sit under their own eyebrow-style `Background` label to match the layout and artwork sections.
@@ -76,6 +77,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
   Unsaved layout drafts are stored per user in IndexedDB so route changes do not drop the current canvas state.
   Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
+  Rotation works in 90-degree increments from parent and child rows: parent rotation affects the whole group, child rotation affects only that copy, and the board is repacked after either action.
   Duplicate placement continues to the right on the source row, then restarts from the left edge on later rows so open space left of the parent can still be used lower in the canvas.
   Size fields now accept `0mm` while typing so values like `100mm` can be entered directly without snapping up to `40mm`.
   `Add to order` renders the current layout to a one-page PDF named with a clean `Template <date>.pdf` label, shows template-specific loading/success modal copy, and redirects to `/` where the template is inserted into the normal upload queue.

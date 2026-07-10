@@ -58,6 +58,8 @@
   - manual size entry allows `0mm` while typing instead of snapping to a `40mm` minimum
   - each parent artwork row also exposes a copy-count stepper with arrow buttons and direct number entry
   - duplicate rows are grouped under their original artwork in the left-hand list
+  - parent rows provide a 90-degree rotate action that rotates the original and every child copy together, then repacks the board within its bounds
+  - each child copy provides its own 90-degree rotate action; rotating one copy repacks surrounding artwork to preserve spacing and remain within the board
   - parent size changes resize the entire duplicate group while keeping duplicate spacing at `10mm`
   - changing the copy count adds or removes child duplicates directly from the grouped list
   - duplicate placement continues to the right on the source row, then restarts from the left preview edge on later rows so unused left-side space can still be filled
