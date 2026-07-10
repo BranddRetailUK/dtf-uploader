@@ -1501,18 +1501,26 @@ export function LayoutV2Studio({
                       zIndex: artwork.zIndex + 1,
                     }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={artwork.previewUrl}
-                      alt={artwork.name}
-                      draggable={false}
-                      className="absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none object-contain"
-                      style={{
-                        width: artwork.rotationDeg % 180 === 0 ? "100%" : `${(artwork.heightMm / Math.max(artwork.widthMm, 0.001)) * 100}%`,
-                        height: artwork.rotationDeg % 180 === 0 ? "100%" : `${(artwork.widthMm / Math.max(artwork.heightMm, 0.001)) * 100}%`,
-                        transform: `translate(-50%, -50%) rotate(${artwork.rotationDeg}deg)`,
-                      }}
-                    />
+                    <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={artwork.previewUrl}
+                        alt={artwork.name}
+                        draggable={false}
+                        className="max-w-none shrink-0 select-none object-contain"
+                        style={{
+                          width:
+                            artwork.rotationDeg % 180 === 0
+                              ? "100%"
+                              : `${(artwork.heightMm / Math.max(artwork.widthMm, 0.001)) * 100}%`,
+                          height:
+                            artwork.rotationDeg % 180 === 0
+                              ? "100%"
+                              : `${(artwork.widthMm / Math.max(artwork.heightMm, 0.001)) * 100}%`,
+                          transform: `rotate(${artwork.rotationDeg}deg)`,
+                        }}
+                      />
+                    </div>
                   </div>
                 );
               })}

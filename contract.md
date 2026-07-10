@@ -250,6 +250,7 @@
 - Authenticated V2 saved-layout workspace.
 - Fixed `550mm x 1000mm` template preview area.
 - Artwork groups are packed in creation order: each parent is anchored at the first available top-left position and its copies are packed from that anchor before the next parent is placed.
+- The artwork bounding box uses its top-left corner as the canvas position origin, so the first parent's visible artwork begins at the artboard's top-left rather than being offset around a centre anchor.
 - Light/grey/dark background toggle persisted to the selected layout, with light as the default.
 - Direct artwork intake on the preview via drag/drop or file picker.
 - Parent artwork sizing is edited from `W` and `H` steppers in the left-hand artwork list, with direct number entry between the arrows.

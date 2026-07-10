@@ -50,6 +50,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The preview panel now includes an `Add to order` action that renders the current layout as a PDF template, shows the same spinner/tick modal pattern as upload, and routes to `/` with the generated template injected into the normal upload list.
   New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, duplicate spacing uses a `10mm` gap, and duplicate rows restart from the left canvas edge after the source row has filled to the right.
   Groups pack in creation order: the first parent anchors at the board's top-left, its children pack after it, and each later parent anchors at the next available position before its own children are placed.
+  Canvas artwork uses its bounding box top-left as the positioning origin; image centring is confined inside that box only for rotation and never offsets the box from the artboard origin.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
   JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, admin status updates, and V2 layout create/list/update routes.
