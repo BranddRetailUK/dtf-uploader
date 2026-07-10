@@ -5,10 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
-  FiCopy,
-  FiGrid,
-  FiImage,
+  FiMinus,
   FiMoon,
+  FiPlus,
   FiRotateCw,
   FiSun,
   FiTrash2,
@@ -28,6 +27,7 @@ import {
   clampLayoutItemToCanvas,
   getDefaultLayoutItemSize,
   findNextOpenLayoutPosition,
+  LAYOUT_ITEM_GAP_MM,
   MIN_LAYOUT_ITEM_SIZE_MM,
 } from "@/lib/layout-editor";
 import { createLayoutTemplatePdfFile } from "@/lib/layout-template-pdf";
@@ -179,9 +179,10 @@ function toCanvasRect(item: CanvasArtwork) {
   };
 }
 
-function packArtworkGroups(artworks: CanvasArtwork[]) {
+function packArtworkGroups(artworks: CanvasArtwork[], gapMm: number) {
   const arranged = arrangeLayoutItemGroups(
     artworks.map((artwork) => ({ ...toCanvasRect(artwork), groupId: artwork.groupId })),
+    gapMm,
   );
   const positionsById = new Map(arranged.map((item) => [item.id, item]));
 
@@ -230,6 +231,7 @@ function buildArtworkGroupCopies(input: {
   currentArtworks: CanvasArtwork[];
   parentArtwork: CanvasArtwork;
   targetCopyCount: number;
+  gapMm: number;
 }) {
   const safeTargetCopyCount = Math.max(0, Math.floor(input.targetCopyCount));
   const groupId = input.parentArtwork.groupId;
@@ -284,6 +286,7 @@ function buildArtworkGroupCopies(input: {
   return {
     nextArtworks: packArtworkGroups(
       insertedGroup ? nextInOriginalGroupOrder : [...otherArtworks, ...nextGroup],
+      input.gapMm,
     ),
     removedIds,
   };
@@ -302,6 +305,7 @@ export function LayoutV2Studio({
     initialLayout?.backgroundMode ?? "LIGHT",
   );
   const [artworks, setArtworks] = useState<CanvasArtwork[]>([]);
+  const [gapMm, setGapMm] = useState(LAYOUT_ITEM_GAP_MM);
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "error";
@@ -395,13 +399,18 @@ export function LayoutV2Studio({
         ];
       });
 
-      const packedRestoredArtworks = packArtworkGroups(restoredArtworks);
+      const restoredGapMm = Math.max(0, savedDraft.gapMm ?? LAYOUT_ITEM_GAP_MM);
+      const packedRestoredArtworks = packArtworkGroups(
+        restoredArtworks,
+        restoredGapMm,
+      );
 
       setArtworks((current) => {
         revokeUnusedPreviewUrls(current, packedRestoredArtworks);
         return packedRestoredArtworks;
       });
       setBackgroundMode(savedDraft.backgroundMode);
+      setGapMm(restoredGapMm);
       setSelectedArtworkId(
         packedRestoredArtworks.some((artwork) => artwork.id === savedDraft.selectedArtworkId)
           ? savedDraft.selectedArtworkId
@@ -435,6 +444,7 @@ export function LayoutV2Studio({
       void saveLayoutDraft(userId, {
         selectedArtworkId,
         backgroundMode,
+        gapMm,
         assets: parentArtworks.map((artwork) => ({
           assetId: artwork.groupId,
           name: artwork.name,
@@ -463,7 +473,7 @@ export function LayoutV2Studio({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [artworks, backgroundMode, isDraftHydrated, selectedArtworkId, userId]);
+  }, [artworks, backgroundMode, gapMm, isDraftHydrated, selectedArtworkId, userId]);
 
   useEffect(() => {
     const node = printableAreaRef.current;
@@ -567,7 +577,7 @@ export function LayoutV2Studio({
     }
 
     function handlePointerUp() {
-      setArtworks((current) => packArtworkGroups(current));
+      setArtworks((current) => packArtworkGroups(current, gapMm));
       setInteraction(null);
     }
 
@@ -580,10 +590,8 @@ export function LayoutV2Studio({
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [canvasSizePx.height, canvasSizePx.width, interaction]);
+  }, [canvasSizePx.height, canvasSizePx.width, gapMm, interaction]);
 
-  const selectedArtwork =
-    artworks.find((artwork) => artwork.id === selectedArtworkId) ?? null;
   const pieces = [...artworks].sort((left, right) => left.zIndex - right.zIndex);
   const artworkGroups = Array.from(
     artworks.reduce(
@@ -710,7 +718,7 @@ export function LayoutV2Studio({
           });
           const position = findNextOpenLayoutPosition(
             working.map(toCanvasRect),
-            defaultSize,
+            { ...defaultSize, gapMm },
           );
           const artworkId = crypto.randomUUID();
           const nextArtwork: CanvasArtwork = {
@@ -918,35 +926,6 @@ export function LayoutV2Studio({
     }
   }
 
-  function handleArrange() {
-    if (artworks.length < 2) {
-      return;
-    }
-
-    setArtworks((current) =>
-      packArtworkGroups(current).map((artwork, index) => ({
-        ...artwork,
-        zIndex: index,
-      })),
-    );
-  }
-
-  function handleDuplicate() {
-    if (!selectedArtwork) {
-      return;
-    }
-
-    const parentArtwork =
-      artworks.find((artwork) => artwork.id === selectedArtwork.groupId) ??
-      selectedArtwork;
-    const currentCopyCount = artworks.filter(
-      (artwork) =>
-        artwork.groupId === parentArtwork.groupId && artwork.id !== parentArtwork.id,
-    ).length;
-
-    setArtworkCopyCount(parentArtwork.groupId, currentCopyCount + 1);
-  }
-
   function setArtworkCopyCount(groupId: string, rawValue: string | number) {
     const parsedValue =
       typeof rawValue === "number" ? rawValue : Number.parseInt(rawValue, 10);
@@ -966,6 +945,7 @@ export function LayoutV2Studio({
         currentArtworks: current,
         parentArtwork,
         targetCopyCount: parsedValue,
+        gapMm,
       });
 
       if (selectedArtworkId && removedIds.has(selectedArtworkId)) {
@@ -1032,6 +1012,7 @@ export function LayoutV2Studio({
         currentArtworks: resizedGroup,
         parentArtwork: nextParentArtwork,
         targetCopyCount: currentCopyCount,
+        gapMm,
       }).nextArtworks;
     });
   }
@@ -1089,8 +1070,15 @@ export function LayoutV2Studio({
         });
       });
 
-      return packArtworkGroups(rotated);
+      return packArtworkGroups(rotated, gapMm);
     });
+  }
+
+  function updateGapMm(rawValue: number) {
+    const nextGapMm = Math.min(250, Math.max(0, Math.round(rawValue)));
+
+    setGapMm(nextGapMm);
+    setArtworks((current) => packArtworkGroups(current, nextGapMm));
   }
 
   return (
@@ -1108,35 +1096,32 @@ export function LayoutV2Studio({
         <div className="surface-panel">
         <p className="eyebrow">Layout</p>
         <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#666666]">
+            Artwork gap
+          </p>
+          <div className="mt-3 inline-flex items-center rounded-full border border-[#7e00ff]/16 bg-white shadow-[0_10px_24px_rgba(126,0,255,0.07)]">
           <button
             type="button"
-            onClick={openFilePicker}
-            className="primary-button px-4 py-2.5 text-sm"
+            onClick={() => updateGapMm(gapMm - 1)}
+            disabled={gapMm <= 0}
+            className="inline-flex size-10 items-center justify-center text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff] disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="Decrease artwork gap"
           >
-            <FiImage className="size-4" />
-            Add artwork
+            <FiMinus className="size-4" />
           </button>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-3">
+          <span className="min-w-[5.5rem] text-center text-sm font-semibold text-[#1c1c1c]">
+            {gapMm}mm
+          </span>
           <button
             type="button"
-            onClick={handleArrange}
-            disabled={artworks.length < 2}
-            className="secondary-button px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-45"
+            onClick={() => updateGapMm(gapMm + 1)}
+            disabled={gapMm >= 250}
+            className="inline-flex size-10 items-center justify-center text-[#666666] transition hover:bg-[#f4ebff] hover:text-[#7e00ff] disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="Increase artwork gap"
           >
-            <FiGrid className="size-4" />
-            Arrange
+            <FiPlus className="size-4" />
           </button>
-          <button
-            type="button"
-            onClick={handleDuplicate}
-            disabled={!selectedArtwork}
-            className="secondary-button px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <FiCopy className="size-4" />
-            Duplicate
-          </button>
+          </div>
         </div>
 
         <div className="mt-6">
@@ -1464,7 +1449,7 @@ export function LayoutV2Studio({
             <div
               ref={printableAreaRef}
               onPointerDown={() => setSelectedArtworkId(null)}
-              className={`relative h-full w-full overflow-hidden rounded-[1.5rem] border border-dashed ${backgroundUi.innerClassName}`}
+              className={`relative h-full w-full overflow-hidden border border-dashed ${backgroundUi.innerClassName}`}
             >
               {pieces.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center px-8 text-center">

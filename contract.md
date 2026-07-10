@@ -51,7 +51,7 @@
   - layout background mode persists to PostgreSQL, with `LIGHT` as the default mode
   - the background toggle offers `LIGHT`, `GREY`, and `DARK`, where `GREY` renders the printable area as `50%` black
   - the background controls sit under a dedicated eyebrow-style `Background` heading
-  - unsaved layout drafts persist per user in the browser, including artwork files, positions, sizes, copy counts, selected item, and background mode, so switching routes does not clear the current canvas
+  - unsaved layout drafts persist per user in the browser, including artwork files, positions, sizes, copy counts, selected item, artwork gap, and background mode, so switching routes does not clear the current canvas
   - artwork can be added directly onto the preview by drag/drop or file picker
   - EPS artwork is accepted and converted through an authenticated, temporary Cloudinary image conversion so it has a visual PNG preview on the artboard and in generated templates; the original EPS remains the source file
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
@@ -61,12 +61,13 @@
   - duplicate rows are grouped under their original artwork in the left-hand list
   - parent rows provide a 90-degree rotate action that rotates the original and every child copy together, then repacks the board within its bounds
   - each child copy provides its own 90-degree rotate action; rotating one copy repacks surrounding artwork to preserve spacing and remain within the board
-  - parent size changes resize the entire duplicate group while keeping duplicate spacing at `10mm`
+  - parent size changes resize the entire duplicate group while keeping the selected artwork gap
   - changing the copy count adds or removes child duplicates directly from the grouped list
   - duplicate placement continues to the right on the source row, then restarts from the left preview edge on later rows so unused left-side space can still be filled
   - `Add to order` renders the current layout into a one-page PDF template, shows template-specific loading/success modal copy, and redirects to `/`
   - new artwork is placed top-left first, then across the row, then below when horizontal space runs out
-  - duplicated artwork uses a `10mm` gap
+  - the layout toolbar omits the former `Add artwork`, `Arrange`, and `Duplicate` buttons; artwork intake remains available from the empty artwork/canvas states and drag/drop, while copy count remains on each parent row
+  - artwork spacing defaults to `10mm` and is adjusted live with minus/value/plus controls; every change repacks parents and copies within the artboard and persists in the browser draft
   - the V2 artwork pieces are still local-only until layout asset uploads are implemented
 - Order status derivation during upload finalization:
   - any file `FAILED` => order `FAILED`
@@ -189,6 +190,7 @@
 - Logged in:
   - two-column upload layout
   - left-column selected gang sheet preview window with no browser PDF toolbar
+  - the preview window and rendered PDF surface use square corners so gang-sheet edges are not clipped by border-radius styling
   - PDF previews render the first page fitted inside the preview pane
   - the preview window accepts drag/drop gang sheet uploads
   - left/right preview arrows appear when multiple files are loaded
@@ -251,14 +253,15 @@
 - Fixed `550mm x 1000mm` template preview area.
 - Artwork groups are packed in creation order: each parent is anchored at the first available top-left position and its copies are packed from that anchor before the next parent is placed.
 - The artwork bounding box uses its top-left corner as the canvas position origin, so the first parent's visible artwork begins at the artboard's top-left rather than being offset around a centre anchor.
+- The innermost printable artboard uses square corners and must not visually clip corner-aligned artwork with a border radius.
 - Light/grey/dark background toggle persisted to the selected layout, with light as the default.
 - Direct artwork intake on the preview via drag/drop or file picker.
 - Parent artwork sizing is edited from `W` and `H` steppers in the left-hand artwork list, with direct number entry between the arrows.
 - Size inputs can be typed down to `0mm`, so entering values like `100mm` no longer snaps the artwork up to a `40mm` minimum mid-entry.
 - Parent artwork copy count is edited from a matching stepper with direct number entry.
 - The preview does not show file-title badges, resize handles, or bounding boxes on artwork.
-- `Arrange` repacks current artwork inside the printable bounds.
-- `Duplicate` adds another bounded-grid copy for the selected artwork group, respecting the `10mm` gap and preview bounds, continuing right on the source row and restarting from the left edge on later rows.
+- Artwork gap uses a live minus/value/plus control, defaults to `10mm`, and repacks current artwork inside the printable bounds whenever it changes.
+- Copies are added from the parent copy-count control and use the selected artwork gap while continuing through the best-fit bounded layout.
 - Local artwork list groups duplicates beneath their original artwork and only exposes size/copy controls on the parent row.
 - `Add to order` creates a PDF template from the current canvas, gives it a clean date-based filename, shows template-specific loading/success modal text, and routes to `/` with that PDF added to the upload list.
 - Unsaved layout drafts survive route changes for the signed-in user.

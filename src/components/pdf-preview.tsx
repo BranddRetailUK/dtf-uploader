@@ -170,7 +170,7 @@ export function PdfPreview({
       aria-label={title}
     >
       <div className="flex h-full items-center justify-center">
-        <div className="overflow-hidden rounded-[1.25rem] border border-[#1c1c1c]/8 bg-white shadow-[0_16px_34px_rgba(28,28,28,0.06)]">
+        <div className="overflow-hidden border border-[#1c1c1c]/8 bg-white shadow-[0_16px_34px_rgba(28,28,28,0.06)]">
           <canvas ref={canvasRef} />
         </div>
       </div>

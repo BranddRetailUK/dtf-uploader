@@ -22,6 +22,7 @@ export type LayoutDraftRecord = {
   id: string;
   selectedArtworkId: string | null;
   backgroundMode: LayoutBackgroundMode;
+  gapMm?: number;
   assets: Array<{
     assetId: string;
     name: string;

@@ -157,7 +157,10 @@ export function arrangeLayoutItems<T extends LayoutCanvasItem>(items: T[]) {
   }));
 }
 
-export function arrangeLayoutItemGroups<T extends GroupedLayoutCanvasItem>(items: T[]) {
+export function arrangeLayoutItemGroups<T extends GroupedLayoutCanvasItem>(
+  items: T[],
+  gapMm = LAYOUT_ITEM_GAP_MM,
+) {
   const occupied: LayoutCanvasItem[] = [];
   const arrangedById = new Map<string, { xMm: number; yMm: number }>();
   const groupIds = Array.from(new Set(items.map((item) => item.groupId)));
@@ -179,6 +182,7 @@ export function arrangeLayoutItemGroups<T extends GroupedLayoutCanvasItem>(items
       const position = findNextOpenLayoutPosition(occupied, {
         widthMm: item.widthMm,
         heightMm: item.heightMm,
+        gapMm,
       });
 
       arrangedById.set(item.id, position);

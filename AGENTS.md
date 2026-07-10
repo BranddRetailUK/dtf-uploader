@@ -18,6 +18,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Unsaved upload drafts now persist per user in the browser, so switching to another route and back restores the current files, quantities, and selected preview.
   The upload page no longer shows an introductory heading/copy above the two-column workspace.
   The preview window uses a custom rendered gang sheet preview with no browser PDF toolbar, accepts drag/drop uploads directly, shows left/right controls when multiple files are loaded, and renders PDFs as a fit-to-window first-page canvas to avoid scrollbar re-render loops.
+  The upload-page preview shell and its rendered PDF surface use square corners so gang-sheet edges are never clipped by presentation rounding.
 - `src/app/home/page.tsx`
   Public DTF transfer home page that remains accessible to signed-in users from the main header Home button.
   Guest users see signup/login CTAs; signed-in users see upload/layout CTAs and no signup prompts.
@@ -41,6 +42,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, arrange all pieces, and duplicate the selected piece into a bounded grid.
   EPS artwork is accepted through an authenticated preview endpoint that temporarily converts it to PNG with Cloudinary; the browser retains the original EPS plus the PNG preview for canvas rendering, draft restoration, and template generation.
   Unsaved layout drafts now persist per user in the browser, so switching away and back restores the current canvas artwork, positions, sizing, copies, selected piece, and background mode.
+  Layout drafts also retain the selected artwork gap, which defaults to `10mm` and is changed from a live minus/value/plus control that immediately repacks the board.
   Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable with no `40mm` floor.
   Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.
   Parent artwork rows include a 90-degree rotate action for the full group, while child rows can rotate individual copies; either action repacks the board with bounded spacing.
@@ -48,9 +50,11 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The background toggle now offers `Light`, `Grey`, and `Dark`, with light remaining the default and grey rendering the printable area as `50%` black.
   The background controls now sit under their own eyebrow-style `Background` label to match the layout and artwork sections.
   The preview panel now includes an `Add to order` action that renders the current layout as a PDF template, shows the same spinner/tick modal pattern as upload, and routes to `/` with the generated template injected into the normal upload list.
-  New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, duplicate spacing uses a `10mm` gap, and duplicate rows restart from the left canvas edge after the source row has filled to the right.
+  New artwork auto-lands from the top-left across the row, then below when the row is full; packing and copy-count changes respect the printable bounds and selected gap, and duplicate rows restart from the left canvas edge after the source row has filled to the right.
+  The former top-level `Add artwork`, `Arrange`, and `Duplicate` buttons are removed; artwork intake remains available from empty states and canvas drag/drop, and copies are managed from each parent row.
   Groups pack in creation order: the first parent anchors at the board's top-left, its children pack after it, and each later parent anchors at the next available position before its own children are placed.
   Canvas artwork uses its bounding box top-left as the positioning origin; image centring is confined inside that box only for rotation and never offsets the box from the artboard origin.
+  The innermost printable artboard has square corners so artwork placed against any corner is not clipped by presentation styling.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
   JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, admin status updates, and V2 layout create/list/update routes.
@@ -78,7 +82,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Authenticated users land directly in the canvas without needing a visible create-layout action; a saved layout shell is created automatically when needed.
   Layout background mode saves through `/api/layouts/:layoutId` and reloads on revisit, with `LIGHT` as the default mode.
   The preview canvas accepts direct artwork intake, supports selection, drag, arrange, and duplicate interactions, and keeps artwork inside the printable bounds.
-  Unsaved layout drafts are stored per user in IndexedDB so route changes do not drop the current canvas state.
+  Unsaved layout drafts are stored per user in IndexedDB so route changes do not drop the current canvas state or selected artwork gap.
   Piece sizing and copy count are adjusted from editable steppers in the artwork list, duplicates are grouped beneath their original artwork, and parent size changes resize the entire duplicate group.
   Rotation works in 90-degree increments from parent and child rows: parent rotation affects the whole group, child rotation affects only that copy, and the board is repacked after either action.
   Duplicate placement continues to the right on the source row, then restarts from the left edge on later rows so open space left of the parent can still be used lower in the canvas.
@@ -95,7 +99,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - Admin:
   Admins can review all orders and move them through `RECEIVED`, `IN_PRODUCTION`, `COMPLETED`, or `FAILED`.
 - V2 canvas:
-  `/layout` now provides the interactive template area, light/grey/dark background toggle, direct artwork intake, duplicate grouping under parent artworks, local arrange/duplicate controls with left-list width/height/copy steppers, and PDF handoff into the upload flow.
+  `/layout` now provides the interactive template area, light/grey/dark background toggle, direct artwork intake, duplicate grouping under parent artworks, left-list width/height/copy steppers, a live adjustable artwork-gap control, and PDF handoff into the upload flow.
 
 ## Data Model Summary
 
