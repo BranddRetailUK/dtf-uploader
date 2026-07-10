@@ -1,5 +1,5 @@
-ALTER TABLE "layouts" ALTER COLUMN "canvasWidthMm" SET DEFAULT 550;
+ALTER TABLE "Layout" ALTER COLUMN "canvasWidthMm" SET DEFAULT 550;
 
-UPDATE "layouts"
+UPDATE "Layout"
 SET "canvasWidthMm" = 550
 WHERE "canvasWidthMm" = 560;
