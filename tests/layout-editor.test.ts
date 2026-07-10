@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   arrangeLayoutItems,
+  arrangeLayoutItemGroups,
   clampLayoutItemToCanvas,
   duplicateLayoutItemGrid,
   findNextOpenLayoutPosition,
@@ -58,7 +59,7 @@ test("clampLayoutItemToCanvas keeps artwork inside the preview bounds", () => {
     heightMm: 80,
   });
 
-  assert.equal(item.xMm, 440);
+  assert.equal(item.xMm, 430);
   assert.equal(item.yMm, 920);
 });
 
@@ -97,7 +98,24 @@ test("arrangeLayoutItems packs artwork from the top left without overlap", () =>
     arranged.map((item) => ({ id: item.id, xMm: item.xMm, yMm: item.yMm })),
     [
       { id: "item_1", xMm: 0, yMm: 0 },
-      { id: "item_2", xMm: 192, yMm: 0 },
+      { id: "item_2", xMm: 190, yMm: 0 },
+    ],
+  );
+});
+
+test("arrangeLayoutItemGroups anchors each parent before its copies and later groups", () => {
+  const arranged = arrangeLayoutItemGroups([
+    { id: "parent_1", groupId: "parent_1", xMm: 200, yMm: 300, widthMm: 170, heightMm: 86 },
+    { id: "copy_1", groupId: "parent_1", xMm: 0, yMm: 0, widthMm: 86, heightMm: 170 },
+    { id: "parent_2", groupId: "parent_2", xMm: 0, yMm: 0, widthMm: 100, heightMm: 100 },
+  ]);
+
+  assert.deepEqual(
+    arranged.map(({ id, xMm, yMm }) => ({ id, xMm, yMm })),
+    [
+      { id: "parent_1", xMm: 0, yMm: 0 },
+      { id: "copy_1", xMm: 180, yMm: 0 },
+      { id: "parent_2", xMm: 276, yMm: 0 },
     ],
   );
 });

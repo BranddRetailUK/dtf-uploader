@@ -103,7 +103,7 @@ model Layout {
   userId           String
   name             String
   backgroundMode   LayoutBackgroundMode @default(LIGHT)
-  canvasWidthMm    Int                  @default(560)
+  canvasWidthMm    Int                  @default(550)
   canvasHeightMm   Int                  @default(1000)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt

@@ -58,7 +58,7 @@ The next phase is the layout workspace on `/layout`. The current route is only a
    - store canvas size, background mode, item position, item size, rotation, quantity, and z-order
    - associate each saved layout with the authenticated user
 3. Template canvas interactions
-   - drag, resize, and select artwork inside the `560mm x 1000mm` template
+   - drag, resize, and select artwork inside the `550mm x 1000mm` template
    - constrain placements to the printable bounds
    - show dimensions and spacing clearly while editing
 4. Arrange feature

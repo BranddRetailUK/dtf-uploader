@@ -35,7 +35,7 @@
 - Customer/admin file opening is served through an authenticated app route that generates a time-limited signed Cloudinary raw download URL server-side, fetches that URL, and streams it back inline.
 - Public auth and upload mutation endpoints are rate-limited.
 - Upload UX:
-  - upload-page wording presents files as `560mm x 1000mm` PDF gang sheets
+  - upload-page wording presents files as `550mm x 1000mm` PDF gang sheets
   - the upload panel includes a CTA to `/layout` for creating a gang sheet from uploaded artwork and adding it back to the upload list
   - each gang sheet card has a quantity stepper with arrow buttons; manual number entry is not allowed
   - unsent upload drafts persist per user in the browser, including files, quantities, and selected preview state, so switching routes does not clear the current upload list
@@ -191,7 +191,7 @@
   - PDF previews render the first page fitted inside the preview pane
   - the preview window accepts drag/drop gang sheet uploads
   - left/right preview arrows appear when multiple files are loaded
-  - right-column multi-file gang sheet selection box worded for `560mm x 1000mm` PDF gang sheets
+  - right-column multi-file gang sheet selection box worded for `550mm x 1000mm` PDF gang sheets
   - right-column CTA to `/layout` for creating a gang sheet from uploaded artwork
   - unsent upload drafts survive route changes for the signed-in user
   - a layout-generated PDF gang sheet can appear here as a standard upload file
@@ -247,7 +247,8 @@
 ### `/layout`
 
 - Authenticated V2 saved-layout workspace.
-- Fixed `560mm x 1000mm` template preview area.
+- Fixed `550mm x 1000mm` template preview area.
+- Artwork groups are packed in creation order: each parent is anchored at the first available top-left position and its copies are packed from that anchor before the next parent is placed.
 - Light/grey/dark background toggle persisted to the selected layout, with light as the default.
 - Direct artwork intake on the preview via drag/drop or file picker.
 - Parent artwork sizing is edited from `W` and `H` steppers in the left-hand artwork list, with direct number entry between the arrows.
@@ -426,7 +427,7 @@
   - `backgroundMode?: LIGHT | GREY | DARK`
 - Logic:
   - create a saved layout for the current user
-  - default the canvas size to `560mm x 1000mm`
+  - default the canvas size to `550mm x 1000mm`
 - Response:
   - `layout`
 

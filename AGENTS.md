@@ -11,8 +11,8 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/page.tsx`
   Primary public home and signed-in upload route.
   Logged-out users see a public DTF transfer home page with Lami branding, signup/login CTAs, and copy explaining the combined-metreage bulk-pricing USP.
-  Logged-in users see the gang sheet uploader for intended `560mm x 1000mm` PDF gang sheets, with a left-column preview window, right-column gang sheet box, price block, send button, and an upload modal tied to real upload completion.
-  The gang sheet upload panel includes a CTA to `/layout` so users can build a `560mm x 1000mm` PDF gang sheet from uploaded artwork and return it to the gang sheet list.
+  Logged-in users see the gang sheet uploader for intended `550mm x 1000mm` PDF gang sheets, with a left-column preview window, right-column gang sheet box, price block, send button, and an upload modal tied to real upload completion.
+  The gang sheet upload panel includes a CTA to `/layout` so users can build a `550mm x 1000mm` PDF gang sheet from uploaded artwork and return it to the gang sheet list.
   Each uploaded gang sheet card now includes a styled arrow-stepper quantity control; the billed upload count and price summary use the summed per-file quantities rather than unique file count alone.
   The large headline price now shows the pre-VAT subtotal with a separate `+ VAT` indicator instead of presenting the total-inclusive amount in the hero position.
   Unsaved upload drafts now persist per user in the browser, so switching to another route and back restores the current files, quantities, and selected preview.
@@ -36,7 +36,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
 - `src/app/admin/page.tsx`
   Admin inbox with customer details, order totals, file links, per-file quantity, and status controls.
 - `src/app/layout/page.tsx`
-  V2 saved-layout workspace for artwork layout on a `560mm x 1000mm` template canvas.
+  V2 saved-layout workspace for artwork layout on a `550mm x 1000mm` template canvas.
   The page auto-provisions a saved layout shell when needed, persists background-mode changes through authenticated APIs, and removes developer-facing placeholder copy.
   The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, arrange all pieces, and duplicate the selected piece into a bounded grid.
   Unsaved layout drafts now persist per user in the browser, so switching away and back restores the current canvas artwork, positions, sizing, copies, selected piece, and background mode.
@@ -48,6 +48,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   The background controls now sit under their own eyebrow-style `Background` label to match the layout and artwork sections.
   The preview panel now includes an `Add to order` action that renders the current layout as a PDF template, shows the same spinner/tick modal pattern as upload, and routes to `/` with the generated template injected into the normal upload list.
   New artwork auto-lands from the top-left across the row, then below when the row is full; arrange and duplicate both respect the printable bounds, duplicate spacing uses a `10mm` gap, and duplicate rows restart from the left canvas edge after the source row has filled to the right.
+  Groups pack in creation order: the first parent anchors at the board's top-left, its children pack after it, and each later parent anchors at the next available position before its own children are placed.
   Artwork pieces on `/layout` still use browser object URLs only for now; Cloudinary-backed V2 asset uploads and persisted layout items are still pending.
 - `src/app/api/**`
   JSON/API surface for auth, order creation, authenticated file delivery, Cloudinary signing/finalization, admin status updates, and V2 layout create/list/update routes.
@@ -59,7 +60,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   Login validates the password, optionally enforces admin-only access, and sets the same session cookie.
   Logout deletes the persisted session and clears the cookie.
 - Upload:
-  The client selects gang sheet files, with UI copy aimed at `560mm x 1000mm` PDF gang sheets, previews the selected file locally when possible, and calculates price client-side using shared pricing constants.
+  The client selects gang sheet files, with UI copy aimed at `550mm x 1000mm` PDF gang sheets, previews the selected file locally when possible, and calculates price client-side using shared pricing constants.
   Each selected gang sheet keeps a non-editable quantity that is adjusted with left/right arrow controls on the gang sheet card.
   Unsaved upload drafts are stored per user in IndexedDB so files survive route changes until the order is sent or the draft is cleared.
   `/layout` can hand off a generated PDF gang sheet into this same local upload list, where it behaves like a normal user-added file.

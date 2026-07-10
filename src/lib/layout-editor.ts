@@ -17,6 +17,10 @@ export type LayoutCanvasItem = {
   heightMm: number;
 };
 
+export type GroupedLayoutCanvasItem = LayoutCanvasItem & {
+  groupId: string;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -73,12 +77,17 @@ export function findNextOpenLayoutPosition(
   },
 ) {
   const gapMm = input.gapMm ?? LAYOUT_ITEM_GAP_MM;
-  const scanStepMm = input.scanStepMm ?? LAYOUT_SCAN_STEP_MM;
   const maxX = Math.max(0, LAYOUT_CANVAS_WIDTH_MM - input.widthMm);
   const maxY = Math.max(0, LAYOUT_CANVAS_HEIGHT_MM - input.heightMm);
+  const candidateXs = Array.from(
+    new Set([0, ...existingItems.map((item) => item.xMm + item.widthMm + gapMm)]),
+  ).filter((xMm) => xMm <= maxX).sort((left, right) => left - right);
+  const candidateYs = Array.from(
+    new Set([0, ...existingItems.map((item) => item.yMm + item.heightMm + gapMm)]),
+  ).filter((yMm) => yMm <= maxY).sort((left, right) => left - right);
 
-  for (let yMm = 0; yMm <= maxY; yMm += scanStepMm) {
-    for (let xMm = 0; xMm <= maxX; xMm += scanStepMm) {
+  for (const yMm of candidateYs) {
+    for (const xMm of candidateXs) {
       const candidate = {
         id: "__candidate__",
         xMm,
@@ -140,6 +149,41 @@ export function arrangeLayoutItems<T extends LayoutCanvasItem>(items: T[]) {
       ...item,
       ...position,
     });
+  }
+
+  return items.map((item) => ({
+    ...item,
+    ...arrangedById.get(item.id)!,
+  }));
+}
+
+export function arrangeLayoutItemGroups<T extends GroupedLayoutCanvasItem>(items: T[]) {
+  const occupied: LayoutCanvasItem[] = [];
+  const arrangedById = new Map<string, { xMm: number; yMm: number }>();
+  const groupIds = Array.from(new Set(items.map((item) => item.groupId)));
+
+  for (const groupId of groupIds) {
+    const groupItems = items.filter((item) => item.groupId === groupId);
+    const parent = groupItems.find((item) => item.id === groupId) ?? groupItems[0];
+
+    if (!parent) {
+      continue;
+    }
+
+    const orderedGroup = [
+      parent,
+      ...groupItems.filter((item) => item.id !== parent.id),
+    ];
+
+    for (const item of orderedGroup) {
+      const position = findNextOpenLayoutPosition(occupied, {
+        widthMm: item.widthMm,
+        heightMm: item.heightMm,
+      });
+
+      arrangedById.set(item.id, position);
+      occupied.push({ ...item, ...position });
+    }
   }
 
   return items.map((item) => ({

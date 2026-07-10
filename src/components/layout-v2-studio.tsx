@@ -24,11 +24,10 @@ import {
 import type { LayoutBackgroundMode, LayoutSummary } from "@/lib/domain";
 import { formatFileSize } from "@/lib/format";
 import {
-  arrangeLayoutItems,
+  arrangeLayoutItemGroups,
   clampLayoutItemToCanvas,
   getDefaultLayoutItemSize,
   findNextOpenLayoutPosition,
-  duplicateLayoutItemGrid,
   MIN_LAYOUT_ITEM_SIZE_MM,
 } from "@/lib/layout-editor";
 import { createLayoutTemplatePdfFile } from "@/lib/layout-template-pdf";
@@ -146,6 +145,19 @@ function toCanvasRect(item: CanvasArtwork) {
   };
 }
 
+function packArtworkGroups(artworks: CanvasArtwork[]) {
+  const arranged = arrangeLayoutItemGroups(
+    artworks.map((artwork) => ({ ...toCanvasRect(artwork), groupId: artwork.groupId })),
+  );
+  const positionsById = new Map(arranged.map((item) => [item.id, item]));
+
+  return artworks.map((artwork) => ({
+    ...artwork,
+    xMm: positionsById.get(artwork.id)!.xMm,
+    yMm: positionsById.get(artwork.id)!.yMm,
+  }));
+}
+
 function revokeUnusedPreviewUrls(
   currentArtworks: CanvasArtwork[],
   nextArtworks: CanvasArtwork[],
@@ -196,10 +208,6 @@ function buildArtworkGroupCopies(input: {
   const otherArtworks = input.currentArtworks.filter(
     (artwork) => artwork.groupId !== groupId,
   );
-  const availableCopySlots = duplicateLayoutItemGrid(
-    toCanvasRect(input.parentArtwork),
-    otherArtworks.map(toCanvasRect),
-  );
   const removedIds = new Set<string>();
   let nextZIndex =
     input.currentArtworks.reduce(
@@ -207,19 +215,15 @@ function buildArtworkGroupCopies(input: {
       -1,
     ) + 1;
 
-  const nextChildren = availableCopySlots
-    .slice(0, safeTargetCopyCount)
-    .map((slot, index) => {
+  const nextChildren = Array.from({ length: safeTargetCopyCount }).map((_, index) => {
       const existingChild = currentChildren[index];
 
       return {
         ...(existingChild ?? input.parentArtwork),
         id: existingChild?.id ?? crypto.randomUUID(),
         groupId,
-        xMm: slot.xMm,
-        yMm: slot.yMm,
-        widthMm: input.parentArtwork.widthMm,
-        heightMm: input.parentArtwork.heightMm,
+        xMm: existingChild?.xMm ?? input.parentArtwork.xMm,
+        yMm: existingChild?.yMm ?? input.parentArtwork.yMm,
         zIndex: existingChild?.zIndex ?? nextZIndex++,
       };
     });
@@ -228,8 +232,25 @@ function buildArtworkGroupCopies(input: {
     removedIds.add(artwork.id);
   });
 
+  const nextGroup = [input.parentArtwork, ...nextChildren];
+  let insertedGroup = false;
+  const nextInOriginalGroupOrder = input.currentArtworks.flatMap((artwork) => {
+    if (artwork.groupId !== groupId) {
+      return [artwork];
+    }
+
+    if (insertedGroup) {
+      return [];
+    }
+
+    insertedGroup = true;
+    return nextGroup;
+  });
+
   return {
-    nextArtworks: [...otherArtworks, input.parentArtwork, ...nextChildren],
+    nextArtworks: packArtworkGroups(
+      insertedGroup ? nextInOriginalGroupOrder : [...otherArtworks, ...nextGroup],
+    ),
     removedIds,
   };
 }
@@ -338,15 +359,17 @@ export function LayoutV2Studio({
         ];
       });
 
+      const packedRestoredArtworks = packArtworkGroups(restoredArtworks);
+
       setArtworks((current) => {
-        revokeUnusedPreviewUrls(current, restoredArtworks);
-        return restoredArtworks;
+        revokeUnusedPreviewUrls(current, packedRestoredArtworks);
+        return packedRestoredArtworks;
       });
       setBackgroundMode(savedDraft.backgroundMode);
       setSelectedArtworkId(
-        restoredArtworks.some((artwork) => artwork.id === savedDraft.selectedArtworkId)
+        packedRestoredArtworks.some((artwork) => artwork.id === savedDraft.selectedArtworkId)
           ? savedDraft.selectedArtworkId
-          : restoredArtworks.at(-1)?.id ?? null,
+          : packedRestoredArtworks.at(-1)?.id ?? null,
       );
       setIsDraftHydrated(true);
     }
@@ -504,6 +527,7 @@ export function LayoutV2Studio({
     }
 
     function handlePointerUp() {
+      setArtworks((current) => packArtworkGroups(current));
       setInteraction(null);
     }
 
@@ -858,21 +882,12 @@ export function LayoutV2Studio({
       return;
     }
 
-    setArtworks((current) => {
-      const arranged = arrangeLayoutItems(current.map(toCanvasRect));
-      const nextById = new Map(arranged.map((artwork) => [artwork.id, artwork]));
-
-      return current.map((artwork, index) => {
-        const next = nextById.get(artwork.id)!;
-
-        return {
-          ...artwork,
-          xMm: next.xMm,
-          yMm: next.yMm,
-          zIndex: index,
-        };
-      });
-    });
+    setArtworks((current) =>
+      packArtworkGroups(current).map((artwork, index) => ({
+        ...artwork,
+        zIndex: index,
+      })),
+    );
   }
 
   function handleDuplicate() {
@@ -953,9 +968,27 @@ export function LayoutV2Studio({
         (artwork) =>
           artwork.groupId === groupId && artwork.id !== nextParentArtwork.id,
       ).length;
+      const resizedGroup = current.map((artwork) => {
+        if (artwork.groupId !== groupId || artwork.id === groupId) {
+          return artwork;
+        }
+
+        const hasDifferentOrientation =
+          artwork.rotationDeg % 180 !== nextParentArtwork.rotationDeg % 180;
+
+        return {
+          ...artwork,
+          widthMm: hasDifferentOrientation
+            ? nextParentArtwork.heightMm
+            : nextParentArtwork.widthMm,
+          heightMm: hasDifferentOrientation
+            ? nextParentArtwork.widthMm
+            : nextParentArtwork.heightMm,
+        };
+      });
 
       return buildArtworkGroupCopies({
-        currentArtworks: current,
+        currentArtworks: resizedGroup,
         parentArtwork: nextParentArtwork,
         targetCopyCount: currentCopyCount,
       }).nextArtworks;
@@ -1015,11 +1048,7 @@ export function LayoutV2Studio({
         });
       });
 
-      return arrangeLayoutItems(rotated.map(toCanvasRect)).map((position) => ({
-        ...rotated.find((artwork) => artwork.id === position.id)!,
-        xMm: position.xMm,
-        yMm: position.yMm,
-      }));
+      return packArtworkGroups(rotated);
     });
   }
 
@@ -1377,7 +1406,7 @@ export function LayoutV2Studio({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="eyebrow">Template preview</p>
           <div className="rounded-full border border-[#7e00ff]/14 bg-[#faf8ff] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#7e00ff]">
-            560mm × 1000mm
+            550mm × 1000mm
           </div>
         </div>
 
@@ -1387,7 +1416,7 @@ export function LayoutV2Studio({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`relative aspect-[56/100] w-full max-w-[32rem] rounded-[2rem] border p-4 shadow-[0_18px_50px_rgba(28,28,28,0.08)] transition ${backgroundUi.outerClassName} ${
+            className={`relative aspect-[55/100] w-full max-w-[32rem] rounded-[2rem] border p-4 shadow-[0_18px_50px_rgba(28,28,28,0.08)] transition ${backgroundUi.outerClassName} ${
               isDraggingFiles ? `scale-[0.995] ${backgroundUi.dragOuterClassName}` : ""
             }`}
           >

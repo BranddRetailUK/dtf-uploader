@@ -569,7 +569,7 @@ export function UploadStudio({ userId }: { userId: string }) {
                 Drag or upload gang sheets
               </p>
               <p className="text-sm leading-7 text-[#666666]">
-                Drop 560 x 1000mm PDF gang sheets here or choose them from the
+                Drop 550 x 1000mm PDF gang sheets here or choose them from the
                 upload panel.
               </p>
             </div>
@@ -829,7 +829,7 @@ export function UploadStudio({ userId }: { userId: string }) {
                   Need to create a gang sheet?
                 </p>
                 <p className="mt-2 text-sm leading-7 text-[#666666]">
-                  Build a 560 x 1000mm PDF from uploaded artwork, then add it
+                  Build a 550 x 1000mm PDF from uploaded artwork, then add it
                   back into this gang sheet list.
                 </p>
                 <Link
