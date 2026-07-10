@@ -43,6 +43,7 @@ type CanvasArtwork = {
   name: string;
   bytes: number;
   sourceFile: File;
+  previewFile: File;
   previewUrl: string;
   widthPx: number;
   heightPx: number;
@@ -104,15 +105,47 @@ type CanvasInteraction =
 function isImageFile(file: File) {
   return (
     file.type.toLowerCase().startsWith("image/") ||
-    /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(file.name)
+    file.type.toLowerCase() === "application/postscript" ||
+    /\.(png|jpe?g|webp|gif|svg|avif|eps)$/i.test(file.name)
+  );
+}
+
+function isEpsFile(file: File) {
+  return (
+    file.type.toLowerCase() === "application/postscript" || /\.eps$/i.test(file.name)
+  );
+}
+
+async function createEpsPreviewFile(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/layouts/eps-preview", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+    throw new Error(payload?.error ?? `We couldn't preview ${file.name}.`);
+  }
+
+  return new File(
+    [await response.blob()],
+    `${file.name.replace(/\.eps$/i, "") || "artwork"}-preview.png`,
+    { type: "image/png" },
   );
 }
 
 async function readArtworkFile(file: File) {
-  const previewUrl = URL.createObjectURL(file);
+  const previewFile = isEpsFile(file) ? await createEpsPreviewFile(file) : file;
+  const previewUrl = URL.createObjectURL(previewFile);
 
   return new Promise<{
     previewUrl: string;
+    previewFile: File;
     widthPx: number;
     heightPx: number;
   }>((resolve, reject) => {
@@ -121,6 +154,7 @@ async function readArtworkFile(file: File) {
     image.onload = () => {
       resolve({
         previewUrl,
+        previewFile,
         widthPx: image.naturalWidth || 1,
         heightPx: image.naturalHeight || 1,
       });
@@ -328,7 +362,8 @@ export function LayoutV2Studio({
           asset.assetId,
           {
             ...asset,
-            previewUrl: URL.createObjectURL(asset.file),
+            previewFile: asset.previewFile ?? asset.file,
+            previewUrl: URL.createObjectURL(asset.previewFile ?? asset.file),
           },
         ]),
       );
@@ -346,6 +381,7 @@ export function LayoutV2Studio({
             name: asset.name,
             bytes: asset.bytes,
             sourceFile: asset.file,
+            previewFile: asset.previewFile,
             previewUrl: asset.previewUrl,
             widthPx: asset.widthPx,
             heightPx: asset.heightPx,
@@ -406,6 +442,10 @@ export function LayoutV2Studio({
           widthPx: artwork.widthPx,
           heightPx: artwork.heightPx,
           file: artwork.sourceFile,
+          previewFile:
+            artwork.previewFile === artwork.sourceFile
+              ? undefined
+              : artwork.previewFile,
         })),
         artworks: artworks.map((artwork) => ({
           id: artwork.id,
@@ -679,6 +719,7 @@ export function LayoutV2Studio({
             name: loadedFile.file.name,
             bytes: loadedFile.file.size,
             sourceFile: loadedFile.file,
+            previewFile: loadedFile.previewFile,
             previewUrl: loadedFile.previewUrl,
             widthPx: loadedFile.widthPx,
             heightPx: loadedFile.heightPx,
@@ -1058,7 +1099,7 @@ export function LayoutV2Studio({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.eps,application/postscript"
           multiple
           className="hidden"
           onChange={handleFileInput}

@@ -29,6 +29,7 @@ export type LayoutDraftRecord = {
     widthPx: number;
     heightPx: number;
     file: File;
+    previewFile?: File;
   }>;
   artworks: Array<{
     id: string;

@@ -53,6 +53,7 @@
   - the background controls sit under a dedicated eyebrow-style `Background` heading
   - unsaved layout drafts persist per user in the browser, including artwork files, positions, sizes, copy counts, selected item, and background mode, so switching routes does not clear the current canvas
   - artwork can be added directly onto the preview by drag/drop or file picker
+  - EPS artwork is accepted and converted through an authenticated, temporary Cloudinary image conversion so it has a visual PNG preview on the artboard and in generated templates; the original EPS remains the source file
   - each artwork can be selected, dragged, arranged, and duplicated in a bounded grid
   - each parent artwork row in the left-hand list exposes `W` and `H` millimetre steppers with a directly editable number field between the arrows
   - manual size entry allows `0mm` while typing instead of snapping to a `40mm` minimum

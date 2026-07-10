@@ -39,6 +39,7 @@ If APIs, business rules, or feature scope change, update `contract.md` in the sa
   V2 saved-layout workspace for artwork layout on a `550mm x 1000mm` template canvas.
   The page auto-provisions a saved layout shell when needed, persists background-mode changes through authenticated APIs, and removes developer-facing placeholder copy.
   The preview window now acts as the artwork intake area: users can drag/drop or choose image artwork directly into the canvas, select pieces, drag them, arrange all pieces, and duplicate the selected piece into a bounded grid.
+  EPS artwork is accepted through an authenticated preview endpoint that temporarily converts it to PNG with Cloudinary; the browser retains the original EPS plus the PNG preview for canvas rendering, draft restoration, and template generation.
   Unsaved layout drafts now persist per user in the browser, so switching away and back restores the current canvas artwork, positions, sizing, copies, selected piece, and background mode.
   Artwork sizing is now controlled from grouped `W` and `H` millimetre steppers in the left-hand artwork list instead of preview-side resize chrome, and the number between the arrows is directly editable with no `40mm` floor.
   Parent artwork rows now also include an editable copy-count stepper; changing that value adds or removes grouped duplicates directly from the child list.

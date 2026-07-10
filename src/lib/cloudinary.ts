@@ -172,6 +172,61 @@ export function createSignedAssetDownloadUrl(input: {
   );
 }
 
+export async function createEpsPreviewPng(input: {
+  bytes: Buffer;
+  userId: string;
+}) {
+  configureCloudinary();
+
+  const publicId = `eps-preview-${input.userId}-${crypto.randomUUID()}`;
+  let uploadedPublicId: string | null = null;
+
+  try {
+    const uploaded = await new Promise<{ public_id: string; secure_url: string }>(
+      (resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "image",
+            public_id: publicId,
+            format: "png",
+            overwrite: false,
+          },
+          (error, result) => {
+            if (error || !result?.public_id || !result.secure_url) {
+              reject(error ?? new Error("EPS preview conversion failed."));
+              return;
+            }
+
+            resolve({
+              public_id: result.public_id,
+              secure_url: result.secure_url,
+            });
+          },
+        );
+
+        stream.end(input.bytes);
+      },
+    );
+    uploadedPublicId = uploaded.public_id;
+
+    const previewResponse = await fetch(uploaded.secure_url, {
+      cache: "no-store",
+    });
+
+    if (!previewResponse.ok) {
+      throw new Error("EPS preview conversion failed.");
+    }
+
+    return Buffer.from(await previewResponse.arrayBuffer());
+  } finally {
+    if (uploadedPublicId) {
+      await cloudinary.uploader
+        .destroy(uploadedPublicId, { resource_type: "image", invalidate: true })
+        .catch(() => undefined);
+    }
+  }
+}
+
 export async function verifyUploadedAsset(input: {
   userId: string;
   orderId: string;
